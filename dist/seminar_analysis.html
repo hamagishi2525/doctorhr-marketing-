@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DoctorHR セミナー分析</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --brand:#16a34a;--brand-dark:#15803d;--brand-light:#f0fdf4;
+  --brand-border:#bbf7d0;--brand-mid:#4ade80;
+  --text:#111827;--text-2:#6b7280;--text-3:#9ca3af;
+  --bg:#f8fafb;--bg-card:#fff;--border:rgba(0,0,0,.08);
+  --shadow:0 1px 3px rgba(0,0,0,.06);
+  --radius:12px;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);font-size:13px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+
+/* ── NAV ── */
+/* ─── 統一ナビゲーション ─── */
+.unav{background:#fff;border-bottom:1px solid rgba(0,0,0,.07);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.unav a{text-decoration:none}
+.unav-logo{display:flex;align-items:center;gap:10px}
+.unav-logo img{height:32px;width:auto;object-fit:contain}
+.unav-name{font-weight:700;font-size:13px;color:#111827;letter-spacing:-.2px;line-height:1.2}
+.unav-sub{font-size:10px;color:#9ca3af}
+.unav-tabs{display:flex;gap:1px;background:#f3f4f6;border-radius:10px;padding:3px}
+.unav-tab{padding:5px 14px;border-radius:7px;font-size:12px;font-weight:500;color:#6b7280;cursor:pointer;white-space:nowrap;transition:all .15s}
+.unav-tab.active{background:#fff;color:#16a34a;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.unav-tab:hover:not(.active){background:rgba(255,255,255,.6);color:#374151}
+
+
+
+
+
+
+
+
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:240px 1fr;gap:0;min-height:calc(100vh - 52px)}
+.sidebar{background:#fff;border-right:1px solid var(--border);padding:16px;overflow-y:auto;position:sticky;top:52px;height:calc(100vh - 52px)}
+.main{padding:20px;overflow-y:auto}
+
+/* ── SIDEBAR ── */
+.sidebar-section{margin-bottom:20px}
+.sidebar-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;padding:0 2px}
+.seminar-item{padding:9px 11px;border-radius:9px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:all .15s}
+.seminar-item:hover{background:var(--brand-light);border-color:var(--brand-border)}
+.seminar-item.active{background:var(--brand-light);border-color:var(--brand);font-weight:500}
+.seminar-item .s-name{font-size:12px;font-weight:500;color:var(--text);line-height:1.3;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seminar-item .s-meta{font-size:10px;color:var(--text-3);display:flex;gap:6px}
+.seminar-item.active .s-name{color:var(--brand-dark)}
+.btn-add{width:100%;padding:8px;border-radius:9px;border:1px dashed var(--brand-border);background:var(--brand-light);color:var(--brand);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s}
+.btn-add:hover{border-color:var(--brand);background:#dcfce7}
+.seminar-item .s-del{font-size:10px;color:var(--text-3);float:right;display:none;padding:1px 5px;border-radius:4px;border:1px solid var(--border)}
+.seminar-item:hover .s-del{display:inline}
+.seminar-item .s-del:hover{background:#fee2e2;color:#dc2626;border-color:#fca5a5}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 52px);padding:20px}
+.upload-card{background:#fff;border-radius:16px;padding:48px 40px;text-align:center;max-width:480px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);border:1px solid var(--border)}
+.drop-area{border:2px dashed var(--brand-border);border-radius:12px;padding:32px 20px;cursor:pointer;transition:all .2s;background:var(--brand-light);margin:20px 0}
+.drop-area:hover,.drop-area.over{border-color:var(--brand);background:#dcfce7}
+.drop-area p{color:var(--brand);font-weight:600;font-size:13px}
+.drop-area small{display:block;color:var(--text-3);font-size:11px;margin-top:4px}
+
+/* ── CONTENT HEADER ── */
+.content-hdr{margin-bottom:16px}
+.seminar-banner{background:linear-gradient(135deg,#15803d,#16a34a);border-radius:14px;padding:18px 22px;color:#fff;margin-bottom:14px}
+.seminar-banner h2{font-size:16px;font-weight:700;margin-bottom:6px;line-height:1.3}
+.seminar-banner-meta{display:flex;gap:16px;font-size:12px;opacity:.85;flex-wrap:wrap}
+.mode-tabs{display:flex;gap:4px;background:#fff;border-radius:10px;padding:4px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow);flex-wrap:wrap}
+.mode-tab{border:none;background:transparent;border-radius:7px;padding:7px 16px;font-size:12px;font-weight:500;color:var(--text-2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.mode-tab.active{background:var(--brand);color:#fff;font-weight:700;box-shadow:0 1px 4px rgba(22,163,74,.3)}
+.mode-tab:hover:not(.active){background:var(--brand-light);color:var(--brand)}
+.seg-tabs{display:flex;gap:3px;background:#f3f4f6;border-radius:9px;padding:3px;margin-bottom:16px;flex-wrap:wrap}
+.seg-tab{border:none;background:transparent;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:500;color:var(--text-2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.seg-tab.active{background:#fff;color:var(--brand);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+/* ── CARDS ── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.card{background:#fff;border-radius:var(--radius);padding:14px 16px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.card.green{background:var(--brand-light);border-color:var(--brand-border)}
+.card-label{font-size:11px;color:var(--text-2);font-weight:500;margin-bottom:6px}
+.card-val{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+.card-val.g{color:var(--brand)}
+.card-sub{font-size:11px;color:var(--text-3);margin-top:4px}
+.card-rate{font-size:13px;font-weight:600;margin-top:4px;color:var(--brand)}
+
+/* ── SECTIONS ── */
+.section{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.section-hdr{padding:13px 17px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.section-hdr h3{font-size:13px;font-weight:700;color:var(--text)}
+.section-badge{font-size:10px;font-weight:600;background:var(--brand-light);color:var(--brand);padding:2px 8px;border-radius:20px}
+.section-body{padding:16px 17px}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:700px){.cols2{grid-template-columns:1fr}.layout{grid-template-columns:1fr}.sidebar{display:none}}
+
+/* ── BARS ── */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bar-label{font-size:11px;color:#374151;flex:0 0 190px;text-align:right;line-height:1.3}
+.bar-label.sm{flex:0 0 130px}
+.bar-track{flex:1;background:#f1f5f9;border-radius:20px;height:22px;overflow:hidden}
+.bar-fill{height:100%;border-radius:20px;display:flex;align-items:center;padding:0 8px;transition:width .4s ease;min-width:0}
+.bar-fill span{font-size:11px;font-weight:600;color:#fff;white-space:nowrap}
+.bar-pct{font-size:11px;font-weight:600;color:#374151;min-width:38px;text-align:right}
+.bar-cnt{font-size:11px;color:var(--text-3);min-width:30px;text-align:right}
+
+/* ── BIG NUM ── */
+.bignum-card{background:linear-gradient(135deg,var(--brand-light),#dcfce7);border:1px solid var(--brand-border);border-radius:var(--radius);padding:18px;text-align:center}
+.bignum{font-size:40px;font-weight:800;color:var(--brand);line-height:1}
+.bignum-label{font-size:12px;color:var(--brand-dark);margin-top:6px;font-weight:600}
+.bignum-sub{font-size:11px;color:var(--text-3);margin-top:3px}
+
+/* ── PLAN vs ACTUAL ── */
+.plan-form{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);padding:18px;margin-bottom:14px}
+.plan-form h3{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--text)}
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.plan-field{display:flex;flex-direction:column;gap:5px}
+.plan-field label{font-size:11px;font-weight:600;color:var(--text-2)}
+.plan-field input{padding:8px 10px;border-radius:8px;border:1px solid #d1d5db;font-size:13px;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s}
+.plan-field input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(22,163,74,.1)}
+.plan-field small{font-size:10px;color:var(--text-3)}
+.save-plan-btn{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 3px rgba(22,163,74,.3)}
+.save-plan-btn:hover{background:var(--brand-dark)}
+.comparison-table{width:100%;border-collapse:collapse;font-size:12px}
+.comparison-table th{padding:9px 12px;background:#f8fafb;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text-2);font-size:11px}
+.comparison-table td{padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.04)}
+.comparison-table tr:last-child td{border-bottom:none}
+.comparison-table tr:hover td{background:#f8fafb}
+.achieve{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.achieve.ok{background:var(--brand-light);color:var(--brand)}
+.achieve.warn{background:#fef9c3;color:#854d0e}
+.achieve.bad{background:#fee2e2;color:#dc2626}
+.achieve.na{background:#f1f5f9;color:var(--text-3)}
+
+/* ── NOTES ── */
+.notes-area{width:100%;padding:10px 12px;border-radius:9px;border:1px solid #d1d5db;font-size:13px;color:var(--text);font-family:var(--font);resize:vertical;min-height:80px;background:var(--bg);outline:none;transition:border-color .15s}
+.notes-area:focus{border-color:var(--brand)}
+
+/* ── MISC ── */
+.divider{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px;padding:0 2px}
+.no-data{text-align:center;color:var(--text-3);font-size:12px;padding:20px 0}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-3)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px;font-weight:500;color:var(--text-2);margin-bottom:6px}
+.empty-state small{font-size:12px}
+.toast{position:fixed;bottom:20px;right:20px;background:#111827;color:#fff;padding:10px 16px;border-radius:9px;font-size:12px;font-weight:500;opacity:0;transition:opacity .3s;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.toast.show{opacity:1}
+@media print{.nav,.sidebar,.mode-tabs,.seg-tabs,.plan-form,.btn-add{display:none!important}.layout{display:block}.main{padding:0}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="unav">
+  <a href="/" class="unav-logo">
+    <div style="background:#000;border-radius:8px;padding:3px;display:flex;align-items:center;flex-shrink:0">
+      <img src="data:image/png;base64,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" alt="Tobe-Ru" style="height:26px;width:auto;display:block">
+    </div>
+    <div>
+      <div class="unav-name">DoctorHR Marketing Platform</div>
+      <div class="unav-sub">株式会社Tobe-Ru</div>
+    </div>
+  </a>
+  <div class="unav-tabs"><a href="/" class="unav-tab">📊 ダッシュボード</a><a href="/" class="unav-tab">🎤 セミナー</a><a href="/tasks.html" class="unav-tab">📋 タスク</a><a href="/seminar_analysis.html" class="unav-tab  active">📈 セミナー分析</a></div>
+</nav>
+
+<div id="app"></div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFile(this.files[0])">
+
+<script>
+// iframeの中で表示されている場合はナビを非表示
+if (window !== window.top) {
+  document.addEventListener('DOMContentLoaded', function() {
+    const nav = document.querySelector('.unav');
+    if (nav) nav.style.display = 'none';
+  });
+}
+</script>
+<script>
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+const STORE_KEY = 'doctorhr_seminars_v2';
+
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'{"seminars":[]}'); }
+  catch(e){ return {seminars:[]}; }
+}
+function saveStore(data){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+  catch(e){ showToast('保存容量が上限に達しました。古いセミナーを削除してください。'); }
+}
+
+// ─── FIELD MAP ───────────────────────────────────────────────────────────────
+const F = {
+  title:'イベントタイトル', schedule:'開催日程',
+  attend:'参加状況（参加/不参加/キャンセル）', survey:'アンケート回答',
+  q1:'本日のセミナー内容は参考になりましたか？',
+  q2:'今回のセミナーは、参加前に期待していた内容に対して、どの程度沿うものでしたか？',
+  dhr:'Doctor HRについてご要望をお選びください',
+  q3:'本日の内容を踏まえ、DoctorHRのコンサルタントに相談したい内容を教えて下さい。',
+  emp:'従業員数', ref:'本イベントを知ったきっかけ',
+  relation:'当社との関わりを教えてください',
+  eval:'現在評価制度は医院にありますか？',
+  cta1:'CTAクリック履歴_DoctorHRの無料相談',
+  cta2:'CTAクリック履歴_DoctorHR＋無料診断',
+};
+const Q1_OPTS=['とても参考になった','参考になった','どちらともいえない','あまり参考にならなかった','参考にならなかった'];
+const Q2_OPTS=['期待を大きく上回った','おおむね期待通りだった','一部期待通りだった','あまり期待に沿わなかった','期待に沿わなかった'];
+const DHR_OPTS=['Doctor HRについて説明を聞きたい','Doctor HRについて見積もりがほしい','Doctor HRの資料を送ってほしい','院長や理事長へDoctor HRを紹介してほしい','現時点では特に興味はない'];
+const Q3_OPTS=['スタッフが納得しやすい評価制度の作り方を知りたい','今ある制度を見直したい','今は情報収集中なので必要ない','他院の事例を知りたい','何から始めればよいか知りたい','少人数の医院でも導入できるか知りたい','昇給・賞与とどう連動させるべきか相談したい','自院に人事評価制度が必要か相談したい','評価項目の作り方を相談したい','費用感や導入までの流れを知りたい','院長の感覚評価から脱却したい'];
+const EMP_OPTS=['～9名','10～15名','16～20名','21～30名','31名～'];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  seminars: [],
+  currentId: null,
+  mode: 'actual',   // 'actual' | 'plan'
+  seg: 'all',
+};
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init(){
+  const store = loadStore();
+  state.seminars = store.seminars || [];
+  state.currentId = state.seminars[0]?.id || null;
+  render();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function pct(n,d){return d>0?Math.round((n/d)*100):0}
+function fp(n,d){return d>0?`${pct(n,d)}%`:'—'}
+function cb(rows,f,v){return rows.filter(r=>(r[f]||'')===v).length}
+function cc(rows,f,v){return rows.filter(r=>(r[f]||'').includes(v)).length}
+const GS=['#15803d','#16a34a','#22c55e','#4ade80','#86efac'];
+const RS=['#dc2626','#ef4444','#f87171','#fca5a5','#fee2e2'];
+const NS=['#64748b','#94a3b8','#cbd5e1','#e2e8f0'];
+
+function barRow(label,n,total,maxN,color,sm=false){
+  const w=maxN>0?Math.round((n/maxN)*100):0;
+  return `<div class="bar-row">
+    <div class="bar-label ${sm?'sm':''}">${label}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${color}">${w>8?`<span>${n}</span>`:''}</div></div>
+    <div class="bar-pct">${fp(n,total)}</div>
+    <div class="bar-cnt">${n}</div>
+  </div>`;
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ─── SEGMENT ─────────────────────────────────────────────────────────────────
+function segRows(rows,seg){
+  switch(seg){
+    case 'first': return rows.filter(r=>(r[F.relation]||'').includes('今回のセミナーで初めて'));
+    case 'nonuser': return rows.filter(r=>!(r[F.relation]||'').includes('DoctorHRのユーザーである'));
+    case 'nu_eval': return rows.filter(r=>!(r[F.relation]||'').includes('DoctorHRのユーザーである')&&((r[F.eval]||'').includes('既に評価制度はある')||(r[F.eval]||'').includes('リニューアル')));
+    case 'nu_noeval': return rows.filter(r=>!(r[F.relation]||'').includes('DoctorHRのユーザーである')&&((r[F.eval]||'').includes('一度も作ったことがない')||(r[F.eval]||'').includes('運用していない')));
+    default: return rows;
+  }
+}
+const SEG_LABELS={all:'全体',first:'初回参加者',nonuser:'非ユーザー',nu_eval:'非ユーザー（制度あり）',nu_noeval:'非ユーザー（制度なし）'};
+
+// ─── FILE HANDLER ─────────────────────────────────────────────────────────────
+function handleFile(file){
+  if(!file)return;
+  Papa.parse(file,{header:true,skipEmptyLines:true,complete:res=>{
+    if(!res.data?.length){showToast('データが見つかりませんでした');return;}
+    // セッションごとに分割
+    const groups={};
+    res.data.forEach(row=>{
+      const t=row[F.title]||'不明';
+      const s=row[F.schedule]||'—';
+      const key=`${t}||${s}`;
+      if(!groups[key])groups[key]={title:t,schedule:s,rows:[]};
+      groups[key].rows.push(row);
+    });
+    const sessions=Object.values(groups);
+    sessions.forEach(session=>{
+      const id=`sem_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+      const existing=state.seminars.find(s=>s.title===session.title&&s.schedule===session.schedule);
+      if(existing){
+        existing.rows=session.rows;
+        existing.importedAt=new Date().toISOString();
+        showToast(`「${session.title.slice(0,20)}...」を更新しました`);
+      } else {
+        state.seminars.unshift({
+          id, title:session.title, schedule:session.schedule,
+          rows:session.rows,
+          plan:{targetApps:0,targetAttendRate:0,targetSurveyRate:0,targetInterestRate:0,targetNextRate:0,targetConsultRate:0,notes:''},
+          importedAt:new Date().toISOString(),
+        });
+        state.currentId=id;
+        showToast(`「${session.title.slice(0,20)}...」をインポートしました`);
+      }
+    });
+    saveStore({seminars:state.seminars});
+    render();
+  }});
+}
+
+function deleteSeminar(id,e){
+  e.stopPropagation();
+  if(!confirm('このセミナーのデータを削除しますか？'))return;
+  state.seminars=state.seminars.filter(s=>s.id!==id);
+  if(state.currentId===id)state.currentId=state.seminars[0]?.id||null;
+  saveStore({seminars:state.seminars});
+  render();
+}
+
+function savePlan(){
+  const sem=state.seminars.find(s=>s.id===state.currentId);
+  if(!sem)return;
+  sem.plan={
+    targetApps:parseInt(document.getElementById('p-apps').value)||0,
+    targetAttendRate:parseInt(document.getElementById('p-attend').value)||0,
+    targetSurveyRate:parseInt(document.getElementById('p-survey').value)||0,
+    targetInterestRate:parseInt(document.getElementById('p-interest').value)||0,
+    targetNextRate:parseInt(document.getElementById('p-next').value)||0,
+    targetConsultRate:parseInt(document.getElementById('p-consult').value)||0,
+    notes:document.getElementById('p-notes').value,
+  };
+  saveStore({seminars:state.seminars});
+  showToast('計画を保存しました ✓');
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function render(){
+  const sem=state.seminars.find(s=>s.id===state.currentId);
+  const rows=sem?sem.rows:[];
+  const srows=segRows(rows,state.seg);
+
+  document.getElementById('app').innerHTML=`
+    <div class="layout">
+      ${renderSidebar()}
+      <div class="main">
+        ${state.currentId?renderMain(sem,srows):renderEmpty()}
+      </div>
+    </div>
+  `;
+
+  // setup drop area if no seminar selected
+  const da=document.getElementById('drop-area');
+  if(da){
+    da.addEventListener('dragover',e=>{e.preventDefault();da.classList.add('over')});
+    da.addEventListener('dragleave',()=>da.classList.remove('over'));
+    da.addEventListener('drop',e=>{e.preventDefault();da.classList.remove('over');handleFile(e.dataTransfer.files[0])});
+    da.addEventListener('click',()=>document.getElementById('csv-input').click());
+  }
+}
+
+function renderSidebar(){
+  return `<div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">セミナー一覧</div>
+      ${state.seminars.map(s=>{
+        const date=s.schedule?.split(' ')[0]||'—';
+        const n=s.rows?.length||0;
+        return `<div class="seminar-item ${s.id===state.currentId?'active':''}" onclick="selectSeminar('${s.id}')">
+          <div class="s-name">${s.title}</div>
+          <div class="s-meta">
+            <span>${date}</span>
+            <span>${n}名</span>
+            <span class="s-del" onclick="deleteSeminar('${s.id}',event)">削除</span>
+          </div>
+        </div>`;
+      }).join('')}
+      ${state.seminars.length===0?'<div style="font-size:11px;color:var(--text-3);padding:8px;text-align:center">セミナーがありません</div>':''}
+    </div>
+    <button class="btn-add" onclick="document.getElementById('csv-input').click()">
+      + CSVをインポート
+    </button>
+  </div>`;
+}
+
+function renderEmpty(){
+  return `<div class="empty-state">
+    <div class="icon">📊</div>
+    <p>セミナーデータがありません</p>
+    <small>左の「+ CSVをインポート」からBiziblのCSVを読み込んでください</small>
+    <br><br>
+    <div id="drop-area" class="drop-area" style="max-width:380px;margin:0 auto">
+      <p>📂 CSVファイルをここにドロップ</p>
+      <small>または クリックしてファイルを選択</small>
+    </div>
+  </div>`;
+}
+
+function renderMain(sem,srows){
+  const rows=sem.rows;
+  const plan=sem.plan||{};
+  const importDate=sem.importedAt?new Date(sem.importedAt).toLocaleDateString('ja-JP'):'—';
+
+  // 基本集計
+  const total=srows.length;
+  const attend=srows.filter(r=>r[F.attend]==='参加').length;
+  const miss=srows.filter(r=>r[F.attend]==='見逃し参加').length;
+  const absent=srows.filter(r=>r[F.attend]==='不参加'||r[F.attend]==='キャンセル').length;
+  const survey=srows.filter(r=>r[F.survey]==='あり').length;
+  const interested=srows.filter(r=>r[F.survey]==='あり'&&(r[F.dhr]||'').match(/説明を聞きたい|見積もり|資料を送ってほしい|紹介してほしい/)).length;
+  const ctaClicked=srows.filter(r=>r[F.cta1]||r[F.cta2]).length;
+
+  return `
+    <!-- Banner -->
+    <div class="seminar-banner">
+      <h2>${sem.title}</h2>
+      <div class="seminar-banner-meta">
+        <span>📅 ${sem.schedule}</span>
+        <span>👥 ${rows.length}名（全体申込）</span>
+        <span>📋 インポート: ${importDate}</span>
+        <span class="seg-info">表示: ${SEG_LABELS[state.seg]}</span>
+      </div>
+    </div>
+
+    <!-- Mode tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab ${state.mode==='actual'?'active':''}" onclick="setMode('actual')">📊 実績分析</button>
+      <button class="mode-tab ${state.mode==='plan'?'active':''}" onclick="setMode('plan')">🎯 計画 vs 実績</button>
+      <button class="mode-tab" onclick="window.print()" style="margin-left:auto">🖨️ 印刷</button>
+    </div>
+
+    <!-- Segment tabs -->
+    <div class="seg-tabs">
+      ${Object.entries(SEG_LABELS).map(([k,l])=>`
+        <button class="seg-tab ${state.seg===k?'active':''}" onclick="setSeg('${k}')">${l}</button>
+      `).join('')}
+    </div>
+
+    ${state.mode==='actual'?renderActual(srows,total,attend,miss,absent,survey,interested,ctaClicked):renderPlanVsActual(sem,srows,total,attend,miss,survey,interested,ctaClicked)}
+  `;
+}
+
+function renderActual(srows,total,attend,miss,absent,survey,interested,ctaClicked){
+  const respRows=srows.filter(r=>r[F.survey]==='あり');
+  const nr=respRows.length;
+  const q1rows=respRows.filter(r=>r[F.q1]);
+  const q2rows=respRows.filter(r=>r[F.q2]);
+  const dhrRows=respRows.filter(r=>r[F.dhr]);
+
+  return `
+    <!-- 基本情報 -->
+    <div class="divider">📋 基本情報</div>
+    <div class="cards-grid">
+      <div class="card"><div class="card-label">総申込者数</div><div class="card-val">${total}<span style="font-size:13px;font-weight:400;color:var(--text-3)"> 名</span></div></div>
+      <div class="card green"><div class="card-label">参加</div><div class="card-val g">${attend}</div><div class="card-rate">${fp(attend,total)}</div></div>
+      <div class="card"><div class="card-label">見逃し視聴</div><div class="card-val">${miss}</div><div class="card-sub">${fp(miss,total)}</div></div>
+      <div class="card"><div class="card-label">不参加</div><div class="card-val">${absent}</div><div class="card-sub">${fp(absent,total)}</div></div>
+      <div class="card"><div class="card-label">アンケート回答</div><div class="card-val">${survey}</div><div class="card-sub">${fp(survey,attend+miss)}（参加者比）</div></div>
+    </div>
+
+    <!-- 参加状況 -->
+    <div class="section">
+      <div class="section-hdr"><h3>参加状況の内訳</h3><span class="section-badge">${total}名</span></div>
+      <div class="section-body">
+        ${[['参加',attend,GS[0]],['見逃し視聴',miss,GS[2]],['不参加',absent,NS[1]],['キャンセル',srows.filter(r=>r[F.attend]==='キャンセル').length,NS[2]]].map(([l,n,c])=>barRow(l,n,total,total,c,true)).join('')}
+      </div>
+    </div>
+
+    <!-- Q1 + Q2 -->
+    <div class="divider">📝 アンケート分析</div>
+    <div class="cols2">
+      <div class="section">
+        <div class="section-hdr"><h3>Q1 参考になりましたか？</h3><span class="section-badge">${q1rows.length}名</span></div>
+        <div class="section-body">${q1rows.length===0?'<div class="no-data">データなし</div>':Q1_OPTS.map((o,i)=>{const n=cb(q1rows,F.q1,o);const mx=Math.max(...Q1_OPTS.map(x=>cb(q1rows,F.q1,x)));return barRow(o,n,q1rows.length,mx,[GS[0],GS[1],'#f59e0b','#f97316',RS[0]][i]);}).join('')}</div>
+      </div>
+      <div class="section">
+        <div class="section-hdr"><h3>Q2 期待との相違</h3><span class="section-badge">${q2rows.length}名</span></div>
+        <div class="section-body">${q2rows.length===0?'<div class="no-data">データなし</div>':Q2_OPTS.map((o,i)=>{const n=cb(q2rows,F.q2,o);const mx=Math.max(...Q2_OPTS.map(x=>cb(q2rows,F.q2,x)));return barRow(o,n,q2rows.length,mx,[GS[0],GS[1],'#f59e0b','#f97316',RS[0]][i]);}).join('')}</div>
+      </div>
+    </div>
+
+    <!-- Doctor HR + 指標 -->
+    <div class="cols2">
+      <div class="section">
+        <div class="section-hdr"><h3>Doctor HRへのご要望</h3><span class="section-badge">${dhrRows.length}名</span></div>
+        <div class="section-body">${dhrRows.length===0?'<div class="no-data">データなし</div>':DHR_OPTS.map((o,i)=>{const n=cb(dhrRows,F.dhr,o);const mx=Math.max(...DHR_OPTS.map(x=>cb(dhrRows,F.dhr,x)));return barRow(o,n,dhrRows.length,mx,[GS[0],GS[1],GS[2],GS[3],NS[1]][i]);}).join('')}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="bignum-card">
+          <div class="bignum">${fp(interested,dhrRows.length)}</div>
+          <div class="bignum-label">DoctorHR 興味あり率</div>
+          <div class="bignum-sub">${interested}名 / ${dhrRows.length}名（回答者）</div>
+        </div>
+        <div class="bignum-card">
+          <div class="bignum">${fp(ctaClicked,nr)}</div>
+          <div class="bignum-label">🎯 次回セミナー誘導率</div>
+          <div class="bignum-sub">${ctaClicked}名 CTAクリック / ${nr}名（回答者）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="section">
+      <div class="section-hdr"><h3>コンサルに相談したい内容（Q3）</h3><span class="section-badge">${nr}名（回答者）</span></div>
+      <div class="section-body">
+        ${renderQ3(respRows,nr)}
+      </div>
+    </div>
+
+    <!-- 属性 -->
+    <div class="divider">👥 申込者属性</div>
+    <div class="cols2">
+      ${renderAttrSection('従業員数',F.emp,srows,EMP_OPTS)}
+      ${renderRefSection(srows)}
+    </div>
+    <div class="cols2">
+      ${renderAttrSection('当社との関わり',F.relation,srows,['DoctorHRのユーザーである','ユーザーではないが、オンラインセミナー等に何度か参加したことがある','今回のセミナーで初めて参加する','その他'])}
+      ${renderAttrSection('現在の評価制度',F.eval,srows,['既に評価制度はある','既に評価制度はあるが、リニューアルを検討している','評価制度を作ったことはあるが、今は運用していない','評価制度自体、一度も作ったことがない','その他'])}
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--text-3);padding:20px 0;margin-top:8px">
+      DoctorHR Marketing Platform &nbsp;|&nbsp; 株式会社Tobe-Ru &nbsp;|&nbsp; 分析日: ${new Date().toLocaleDateString('ja-JP')}
+    </div>
+  `;
+}
+
+function renderQ3(respRows,nr){
+  const counts={};
+  respRows.forEach(r=>{
+    const v=r[F.q3]||'';
+    Q3_OPTS.forEach(opt=>{if(v.includes(opt.slice(0,8)))counts[opt]=(counts[opt]||0)+1});
+    // パイプ/改行区切り対応
+    v.split(/[\n,、|｜]+/).forEach(part=>{
+      Q3_OPTS.forEach(opt=>{if(part.includes(opt.slice(0,8))&&!counts[opt])counts[opt]=(counts[opt]||0)+1});
+    });
+  });
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  if(total===0)return '<div class="no-data">データなし（自由記述フォーマットの場合、手動集計が必要です）</div>';
+  const sorted=Q3_OPTS.map(o=>({label:o,n:counts[o]||0})).sort((a,b)=>b.n-a.n);
+  const maxN=sorted[0]?.n||1;
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+    ${sorted.map(({label,n})=>`
+      <div class="bar-row">
+        <div class="bar-label" style="flex:0 0 195px;font-size:11px">${label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct(n,maxN)}%;background:var(--brand)">${pct(n,maxN)>8?`<span>${n}</span>`:''}</div></div>
+        <div class="bar-pct">${fp(n,nr)}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderAttrSection(title,field,rows,order){
+  const withData=rows.filter(r=>r[field]);
+  const n=withData.length;
+  const counts={};
+  withData.forEach(r=>{const v=r[field]||'';counts[v]=(counts[v]||0)+1});
+  const sorted=[];
+  order.forEach(o=>{if(counts[o])sorted.push([o,counts[o]])});
+  Object.entries(counts).forEach(([k,v])=>{if(!order.includes(k))sorted.push([k,v])});
+  const maxN=sorted[0]?.[1]||1;
+  const cls=['#15803d','#16a34a','#22c55e','#4ade80','#94a3b8'];
+  return `<div class="section">
+    <div class="section-hdr"><h3>${title}</h3><span class="section-badge">${n}名</span></div>
+    <div class="section-body">${n===0?'<div class="no-data">データなし</div>':sorted.map(([l,c],i)=>`
+      <div class="bar-row">
+        <div class="bar-label" style="font-size:11px;flex:0 0 190px">${l}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct(c,maxN)}%;background:${cls[i%cls.length]}">${pct(c,maxN)>8?`<span>${c}</span>`:''}</div></div>
+        <div class="bar-pct">${fp(c,n)}</div>
+        <div class="bar-cnt">${c}</div>
+      </div>`).join('')}</div>
+  </div>`;
+}
+
+function renderRefSection(rows){
+  const withData=rows.filter(r=>r[F.ref]);
+  const counts={};
+  withData.forEach(r=>{
+    const v=r[F.ref]||'';
+    const parts=v.split(/[\n,、]+/).map(s=>s.trim()).filter(Boolean);
+    parts.forEach(p=>{counts[p]=(counts[p]||0)+1});
+  });
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const maxN=sorted[0]?.[1]||1;
+  const cls=['#15803d','#16a34a','#22c55e','#4ade80','#86efac','#bbf7d0','#94a3b8','#cbd5e1'];
+  return `<div class="section">
+    <div class="section-hdr"><h3>認知経路</h3><span class="section-badge">${total}件（延べ）</span></div>
+    <div class="section-body">${sorted.length===0?'<div class="no-data">データなし</div>':sorted.map(([l,n],i)=>`
+      <div class="bar-row">
+        <div class="bar-label" style="font-size:11px">${l}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct(n,maxN)}%;background:${cls[i%cls.length]}">${pct(n,maxN)>8?`<span>${n}</span>`:''}</div></div>
+        <div class="bar-pct">${fp(n,total)}</div>
+        <div class="bar-cnt">${n}</div>
+      </div>`).join('')}</div>
+  </div>`;
+}
+
+// ─── PLAN vs ACTUAL ───────────────────────────────────────────────────────────
+function renderPlanVsActual(sem,srows,total,attend,miss,survey,interested,ctaClicked){
+  const p=sem.plan||{};
+  const nr=srows.filter(r=>r[F.survey]==='あり').length;
+  const dhrRows=srows.filter(r=>r[F.survey]==='あり'&&r[F.dhr]);
+
+  // 達成率バッジ
+  function ach(actual,target,isRate=false){
+    if(!target)return `<span class="achieve na">目標未設定</span>`;
+    const r=Math.round((actual/target)*100);
+    const cls=r>=100?'ok':r>=80?'warn':'bad';
+    return `<span class="achieve ${cls}">${r}%</span>`;
+  }
+  function fmtR(n,d){return d>0?`${pct(n,d)}%`:'—'}
+
+  const metrics=[
+    {label:'申込者数',target:p.targetApps||0,actual:total,unit:'名',isRate:false,help:'目標申込数'},
+    {label:'参加率',target:p.targetAttendRate||0,actual:pct(attend,total),unit:'%',isRate:true,help:'参加 / 申込'},
+    {label:'アンケート回答率',target:p.targetSurveyRate||0,actual:pct(survey,attend+miss),unit:'%',isRate:true,help:'回答者 / 参加者'},
+    {label:'DoctorHR興味あり率',target:p.targetInterestRate||0,actual:pct(interested,dhrRows.length),unit:'%',isRate:true,help:'資料/説明/見積もり希望率'},
+    {label:'次回セミナー誘導率',target:p.targetNextRate||0,actual:pct(ctaClicked,nr),unit:'%',isRate:true,help:'CTAクリック / 回答者'},
+    {label:'個別相談希望率',target:p.targetConsultRate||0,actual:pct(srows.filter(r=>(r[F.dhr]||'').includes('説明を聞きたい')||(r[F.dhr]||'').includes('見積もり')).length,dhrRows.length),unit:'%',isRate:true,help:'説明・見積もり希望率'},
+  ];
+
+  return `
+    <!-- 計画入力 -->
+    <div class="plan-form">
+      <h3>📋 計画・目標設定</h3>
+      <div class="plan-grid">
+        <div class="plan-field"><label>申込目標数（名）</label><input id="p-apps" type="number" min="0" value="${p.targetApps||''}" placeholder="例: 50"><small>目標申込者数</small></div>
+        <div class="plan-field"><label>参加率目標（%）</label><input id="p-attend" type="number" min="0" max="100" value="${p.targetAttendRate||''}" placeholder="例: 60"><small>参加 / 申込</small></div>
+        <div class="plan-field"><label>アンケート回答率目標（%）</label><input id="p-survey" type="number" min="0" max="100" value="${p.targetSurveyRate||''}" placeholder="例: 70"><small>回答者 / 参加者</small></div>
+        <div class="plan-field"><label>興味あり率目標（%）</label><input id="p-interest" type="number" min="0" max="100" value="${p.targetInterestRate||''}" placeholder="例: 30"><small>DoctorHRに興味を持った割合</small></div>
+        <div class="plan-field"><label>次回誘導率目標（%）</label><input id="p-next" type="number" min="0" max="100" value="${p.targetNextRate||''}" placeholder="例: 35"><small>CTAクリック / 回答者</small></div>
+        <div class="plan-field"><label>個別相談希望率目標（%）</label><input id="p-consult" type="number" min="0" max="100" value="${p.targetConsultRate||''}" placeholder="例: 15"><small>説明・見積もり希望率</small></div>
+      </div>
+      <div class="plan-field" style="margin-bottom:14px">
+        <label>メモ・コメント</label>
+        <textarea id="p-notes" class="notes-area" placeholder="このセミナーの目標設定の背景、改善メモ等">${p.notes||''}</textarea>
+      </div>
+      <button class="save-plan-btn" onclick="savePlan()">💾 計画を保存する</button>
+    </div>
+
+    <!-- 計画 vs 実績テーブル -->
+    <div class="section">
+      <div class="section-hdr">
+        <h3>📊 計画 vs 実績 比較</h3>
+        <span class="section-badge">${SEG_LABELS[state.seg]}</span>
+      </div>
+      <div class="section-body" style="padding:0">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>KPI指標</th>
+              <th style="text-align:center">目標</th>
+              <th style="text-align:center">実績</th>
+              <th style="text-align:center">達成率</th>
+              <th>備考</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${metrics.map(m=>`
+              <tr>
+                <td style="font-weight:500">${m.label}</td>
+                <td style="text-align:center;color:var(--text-2)">${m.target?`${m.target}${m.unit}`:'<span style="color:var(--text-3)">未設定</span>'}</td>
+                <td style="text-align:center;font-weight:600;color:var(--brand)">${m.actual}${m.unit}</td>
+                <td style="text-align:center">${ach(m.actual,m.target)}</td>
+                <td style="color:var(--text-3);font-size:11px">${m.help}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 前回比較ボックス -->
+    ${state.seminars.length>1?`
+    <div class="section">
+      <div class="section-hdr"><h3>📈 他のセミナーとの比較</h3></div>
+      <div class="section-body" style="padding:0">
+        <table class="comparison-table">
+          <thead><tr><th>セミナー名</th><th style="text-align:center">申込</th><th style="text-align:center">参加率</th><th style="text-align:center">回答率</th><th style="text-align:center">興味あり率</th></tr></thead>
+          <tbody>
+            ${state.seminars.map(s=>{
+              const r=s.rows||[];
+              const at=r.filter(x=>x[F.attend]==='参加').length;
+              const ms=r.filter(x=>x[F.attend]==='見逃し参加').length;
+              const sv=r.filter(x=>x[F.survey]==='あり').length;
+              const dh=r.filter(x=>x[F.survey]==='あり'&&x[F.dhr]).length;
+              const in2=r.filter(x=>x[F.survey]==='あり'&&(x[F.dhr]||'').match(/説明|見積もり|資料|紹介/)).length;
+              const isCur=s.id===state.currentId;
+              return `<tr style="${isCur?'background:var(--brand-light);':''}">
+                <td style="font-weight:${isCur?700:400};color:${isCur?'var(--brand-dark)':'var(--text)'};font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${isCur?'▶ ':''} ${s.title}</td>
+                <td style="text-align:center">${r.length}名</td>
+                <td style="text-align:center">${fp(at,r.length)}</td>
+                <td style="text-align:center">${fp(sv,at+ms)}</td>
+                <td style="text-align:center">${fp(in2,dh)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`:''}
+    <div style="text-align:center;font-size:11px;color:var(--text-3);padding:20px 0">DoctorHR Marketing Platform &nbsp;|&nbsp; 株式会社Tobe-Ru</div>
+  `;
+}
+
+// ─── EVENT HANDLERS ───────────────────────────────────────────────────────────
+function selectSeminar(id){state.currentId=id;render()}
+function setMode(m){state.mode=m;render()}
+function setSeg(s){state.seg=s;render()}
+
+// ─── START ────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
