@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>DoctorHR タスク管理ダッシュボード</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f1f5f9;color:#1e293b}
+.hdr{background:#1e293b;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:30;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hdr h1{font-size:14px;font-weight:700;white-space:nowrap}
+.hdr small{font-size:11px;opacity:.6}
+.tabs{display:flex;gap:3px;margin-left:4px}
+.tab{font-size:12px;padding:5px 14px;border:none;border-radius:20px;cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-weight:500;transition:all .15s}
+.tab.active{background:#fff;color:#1e293b;font-weight:700}
+.save-badge{font-size:11px;padding:3px 10px;border-radius:20px;background:#16a34a;color:#fff;white-space:nowrap}
+.save-badge.saving{background:#1d4ed8}
+.btn-sm{font-size:11px;background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:3px 10px;cursor:pointer}
+.btn-new{background:#3b82f6;border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-new:hover{background:#2563eb}
+/* View toggle */
+.view-btns{display:flex;gap:3px}
+.vbtn{font-size:11px;padding:5px 12px;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;background:#fff;color:#64748b;font-weight:500;transition:all .15s}
+.vbtn.active{background:#1e293b;color:#fff;border-color:#1e293b}
+.vbtn:hover:not(.active){background:#f8fafc}
+/* Content */
+.content{padding:12px;display:flex;flex-direction:column;gap:10px}
+/* Stats */
+.stats{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px}
+.stat{flex:1 0 68px;border:2px solid transparent;border-radius:10px;padding:8px 6px;cursor:pointer;text-align:center;transition:all .15s}
+.stat:hover,.stat.active{border-color:#3b82f6;box-shadow:0 0 0 2px #bfdbfe}
+.stat .n{font-size:18px;font-weight:700}
+.stat .l{font-size:10px;color:#64748b;margin-top:1px}
+/* Filter */
+.fbar{background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:9px 12px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.fbar input,.fbar select{border:1px solid #cbd5e1;border-radius:7px;padding:5px 8px;font-size:12px;background:#fff;outline:none}
+.fbar input{flex:1 1 140px}
+.btn-clr{font-size:11px;border:1px solid #fca5a5;border-radius:7px;padding:5px 10px;cursor:pointer;background:#fff;color:#ef4444}
+.cnt{font-size:11px;color:#94a3b8}
+/* Table */
+.twrap{background:#fff;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+thead tr{background:#1e293b;color:#e2e8f0;font-size:11px;font-weight:600}
+thead th{padding:9px 7px;white-space:nowrap;text-align:left}
+th.c,td.c{text-align:center}
+tbody tr.dr{border-bottom:1px solid #f1f5f9;transition:background .1s}
+tbody tr.dr:hover{filter:brightness(.97)}
+tbody tr.xr{border-bottom:1px solid #bfdbfe}
+td{padding:7px 6px;vertical-align:middle}
+.chip{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500;white-space:nowrap;display:inline-block}
+.kpi-chip{font-size:9px;padding:1px 5px;border-radius:10px;background:#ede9fe;color:#6d28d9;margin:1px;display:inline-block;white-space:nowrap}
+.psel,.ssel{font-size:10px;border:none;border-radius:20px;padding:2px 5px;cursor:pointer;outline:none;font-weight:600}
+.din{font-size:11px;border:1px solid #cbd5e1;border-radius:7px;padding:3px 6px;outline:none;cursor:pointer}
+.din.ov{border-color:#fca5a5;background:#fee2e2;color:#dc2626}
+.ovl{font-size:10px;color:#dc2626;text-align:center;margin-top:2px}
+.acell{font-size:11px;color:#475569;cursor:pointer;padding:3px;border-radius:4px;min-height:22px;line-height:1.4}
+.acell:hover{background:#eff6ff;color:#1d4ed8}
+.acell.ph{color:#cbd5e1;font-style:italic}
+.ata{width:100%;font-size:11px;border:1px solid #93c5fd;border-radius:6px;padding:4px;outline:none;resize:none;box-sizing:border-box}
+.ibtn{background:none;border:none;cursor:pointer;padding:3px 4px;border-radius:5px;font-size:13px;color:#94a3b8;transition:all .1s}
+.ibtn:hover{background:#f1f5f9;color:#475569}
+.ibtn.edit:hover{background:#eff6ff;color:#3b82f6}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;padding:12px 16px}
+.dlabel{font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px}
+.dtext{font-size:11px;color:#374151;line-height:1.6}
+.di,.ds{width:100%;font-size:11px;border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;outline:none;box-sizing:border-box}
+.dta{width:100%;font-size:11px;border:1px solid #cbd5e1;border-radius:6px;padding:5px;outline:none;resize:none;box-sizing:border-box}
+/* ===== KANBAN ===== */
+.kboard-wrap{overflow-x:auto;padding-bottom:8px}
+.kboard{display:flex;gap:10px;min-height:calc(100vh - 260px);align-items:flex-start;padding:2px 2px 8px}
+.kcol{width:238px;flex-shrink:0;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.kcol-hdr{padding:10px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:space-between;user-select:none}
+.col-cnt{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.25);min-width:24px;text-align:center}
+.kcol-body{flex:1;min-height:200px;padding:7px;display:flex;flex-direction:column;gap:6px;border:2px solid transparent;border-top:none;border-radius:0 0 10px 10px;transition:all .15s;background:#f8fafc}
+.kcol-body.drag-over{background:#eff6ff!important;border-color:#93c5fd;box-shadow:inset 0 0 0 2px #93c5fd}
+.kcard{background:#fff;border-radius:8px;padding:10px 11px;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:grab;border-left:4px solid #e2e8f0;transition:box-shadow .15s,transform .15s;user-select:none;position:relative}
+.kcard:hover{box-shadow:0 4px 12px rgba(0,0,0,.12);transform:translateY(-1px)}
+.kcard:active{cursor:grabbing}
+.kcard.dragging{opacity:.35;transform:rotate(2deg)}
+.kcard-top{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px}
+.kcard-name{font-size:12px;font-weight:600;color:#1e293b;line-height:1.4;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kcard-meta{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#94a3b8;margin-top:4px;gap:4px}
+.kcard-meta .owner{color:#475569;font-weight:500;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100px}
+.kcard-kpis{margin-top:6px;display:flex;flex-wrap:wrap;gap:3px}
+.kcol-empty{text-align:center;color:#cbd5e1;font-size:11px;padding:24px 0;border:2px dashed #e2e8f0;border-radius:8px;margin:2px}
+.kcard-no{font-size:9px;color:#94a3b8;font-family:monospace;position:absolute;top:7px;right:8px}
+/* Footer */
+.footer{background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:#64748b}
+/* Overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;z-index:50;overflow-y:auto;padding:20px}
+.mbox{background:#fff;border-radius:16px;width:100%;max-width:640px;box-shadow:0 20px 60px rgba(0,0,0,.2);margin:auto}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0}
+.mhdr h3{font-weight:700;font-size:15px}
+.mhdr button{background:none;border:none;font-size:18px;cursor:pointer;color:#64748b;padding:2px 6px;border-radius:6px}
+.mhdr button:hover{background:#f1f5f9}
+.mbody{padding:16px 20px;display:flex;flex-direction:column;gap:12px;max-height:70vh;overflow-y:auto}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:600;color:#64748b}
+.fg input,.fg select,.fg textarea{border:1px solid #cbd5e1;border-radius:7px;padding:6px 10px;font-size:12px;outline:none;width:100%;box-sizing:border-box}
+.fg textarea{resize:vertical;min-height:60px}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mftr{display:flex;gap:8px;padding:14px 20px;border-top:1px solid #e2e8f0;flex-wrap:wrap}
+.mftr button{border:none;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:500}
+.mbtn-save{background:#3b82f6;color:#fff;font-weight:700}
+.mbtn-save:hover{background:#2563eb}
+.mbtn-cancel{background:#f1f5f9;color:#374151}
+.mbtn-cancel:hover{background:#e2e8f0}
+.mbtn-del{background:#fee2e2;color:#dc2626;margin-left:auto}
+.mbtn-del:hover{background:#fca5a5}
+.kpi-section-lbl{font-size:11px;font-weight:700;color:#6d28d9;margin:6px 0 4px;padding:4px 8px;background:#f5f3ff;border-radius:5px}
+.kpi-checks{display:flex;flex-wrap:wrap;gap:6px}
+.kpi-cb{display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;padding:3px 8px;border:1px solid #e2e8f0;border-radius:20px;background:#fafafa}
+.kpi-cb:hover{background:#f0f7ff;border-color:#93c5fd}
+.kpi-cb input{width:12px;height:12px;cursor:pointer}
+.kpi-cb.checked{background:#eff6ff;border-color:#3b82f6;color:#1d4ed8}
+/* Goals */
+.goals-section{background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:16px 20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.goals-section h2{font-size:14px;font-weight:700;margin-bottom:4px}
+.goals-section p{font-size:11px;color:#64748b;margin-bottom:14px}
+.kpi-table{width:100%;border-collapse:collapse}
+.kpi-table th{font-size:11px;font-weight:600;color:#64748b;padding:7px 10px;border-bottom:2px solid #e2e8f0;text-align:left;white-space:nowrap;background:#f8fafc}
+.kpi-table td{font-size:12px;padding:10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.kpi-table tr:last-child td{border-bottom:none}
+.kpi-table tr:hover td{background:#fafafa}
+.kval{width:80px;border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;font-size:12px;outline:none;text-align:center}
+.kval:focus{border-color:#3b82f6}
+.prog-bar{width:100%;background:#e2e8f0;border-radius:20px;height:8px;overflow:hidden;margin-top:4px}
+.prog-fill{height:100%;border-radius:20px;transition:width .3s}
+.prog-pct{font-size:10px;color:#64748b;margin-top:2px;text-align:right}
+.ksta-sel{border:1px solid #e2e8f0;border-radius:20px;padding:3px 8px;font-size:11px;cursor:pointer;outline:none;font-weight:600}
+.task-link-btn{font-size:11px;color:#6d28d9;background:#f5f3ff;border:1px solid #ede9fe;border-radius:6px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.task-link-btn:hover{background:#ede9fe}
+.linked-tasks{display:none;margin-top:8px;padding:8px;background:#fafafa;border-radius:8px;border:1px solid #e2e8f0}
+.linked-tasks.open{display:block}
+.lt-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:11px}
+.lt-row:last-child{border-bottom:none}
+.lt-no{color:#94a3b8;font-family:monospace;min-width:28px}
+.lt-name{flex:1;color:#374151}
+.small-mbox{max-width:420px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div><h1>📋 DoctorHR タスク管理ダッシュボード</h1><small id="hdr-lbl">全67タスク</small></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-tasks" onclick="switchTab('tasks')">📋 タスク管理</button>
+    <button class="tab" id="tab-goals" onclick="switchTab('goals')">🎯 目標・KPI</button>
+  </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <span id="save-badge" class="save-badge">✓ 保存済み</span>
+    <button class="btn-sm" onclick="exportData()" title="データをJSONファイルで書き出し">📤 エクスポート</button>
+    <label class="btn-sm" style="cursor:pointer" title="JSONファイルからデータを読み込み">📥 インポート<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+    <button class="btn-sm" onclick="document.getElementById('reset-modal').style.display='flex'">リセット</button>
+  </div>
+</div>
+
+<!-- ===== TASKS SCREEN ===== -->
+<div id="screen-tasks" class="content">
+  <div class="stats" id="stats"></div>
+  <div class="fbar">
+    <input type="text" id="search" placeholder="🔍 タスク名・担当者で検索" oninput="onFilter()">
+    <select id="f-cat" onchange="onFilter()"><option value="">全カテゴリ</option></select>
+    <select id="f-pri" onchange="onFilter()"><option value="">全優先度</option><option>最重要</option><option>高</option><option>中</option></select>
+    <select id="f-own" onchange="onFilter()"><option value="">全担当者</option></select>
+    <select id="f-kpi" onchange="onFilter()"><option value="">全KPI</option></select>
+    <button class="btn-clr" id="clr-btn" onclick="clearFilters()" style="display:none">✕ クリア</button>
+    <span class="cnt" id="cnt-lbl"></span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+      <div class="view-btns">
+        <button class="vbtn active" id="vbtn-table" onclick="setView('table')">☰ テーブル</button>
+        <button class="vbtn" id="vbtn-kanban" onclick="setView('kanban')">⬛ カンバン</button>
+      </div>
+      <button class="btn-new" onclick="openModal(null)">＋ 新規タスク</button>
+    </div>
+  </div>
+
+  <!-- TABLE VIEW -->
+  <div id="view-table">
+    <div class="twrap"><div class="tscroll">
+      <table>
+        <thead><tr>
+          <th class="c" style="width:34px">No</th>
+          <th style="width:90px">カテゴリ</th>
+          <th>タスク名</th>
+          <th style="width:78px">担当者</th>
+          <th class="c" style="width:62px">優先度</th>
+          <th class="c" style="width:118px">📅 期限</th>
+          <th class="c" style="width:84px">ステータス</th>
+          <th style="width:160px">次アクション</th>
+          <th style="width:96px">🎯 KPI</th>
+          <th class="c" style="width:50px">操作</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div></div>
+    <div class="footer">
+      <b style="color:#374151">操作：</b>
+      <span>✎ 編集ボタン → 全項目を編集・KPI紐づけ</span>
+      <span>▼ → 詳細展開</span>
+      <span>📅 期限・優先度・ステータス → 直接変更</span>
+      <span>💾 自動保存</span>
+    </div>
+  </div>
+
+  <!-- KANBAN VIEW -->
+  <div id="view-kanban" style="display:none">
+    <div class="kboard-wrap">
+      <div class="kboard" id="kboard"></div>
+    </div>
+    <div class="footer">
+      <b style="color:#374151">カンバン操作：</b>
+      <span>🖱 カードをドラッグ → 別の列にドロップしてステータス変更</span>
+      <span>🖱 カードをクリック → 詳細編集</span>
+      <span>💾 変更は自動保存</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GOALS SCREEN ===== -->
+<div id="screen-goals" class="content" style="display:none">
+  <div class="goals-section">
+    <h2>📊 A. 成果KPI <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px">数字で追う指標 — 現在値と目標値を入力してください</span></h2>
+    <p>最終成果から逆算してマーケ全体の数字を管理します。代表指標は <strong>受注数</strong> です。</p>
+    <div style="overflow-x:auto">
+    <table class="kpi-table">
+      <thead><tr>
+        <th style="width:140px">KPI名</th><th>役割</th>
+        <th class="c" style="width:90px">現在値</th><th class="c" style="width:90px">目標値</th>
+        <th style="width:130px">達成率</th><th class="c" style="width:100px">紐づくタスク</th>
+      </tr></thead>
+      <tbody id="kpi-a-tbody"></tbody>
+    </table></div>
+  </div>
+  <div class="goals-section">
+    <h2>🏗️ B. 構築KPI <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:8px">設計・実装・動き出したか で追う指標</span></h2>
+    <p>数字以外の施策進捗を管理します。「設計できたか」「実装できたか」「施策として動き出したか」を重視します。</p>
+    <div style="overflow-x:auto">
+    <table class="kpi-table">
+      <thead><tr>
+        <th style="width:160px">KPI名</th><th>役割</th>
+        <th class="c" style="width:100px">ステータス</th>
+        <th class="c" style="width:100px">目標期限</th>
+        <th class="c" style="width:100px">紐づくタスク</th>
+      </tr></thead>
+      <tbody id="kpi-b-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ===== TASK MODAL ===== -->
+<div id="task-modal" class="overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="mbox">
+    <div class="mhdr"><h3 id="m-title">新規タスク</h3><button onclick="closeModal()">✕</button></div>
+    <div class="mbody">
+      <div class="fg"><label>タスク名 *</label><input id="m-task" type="text" placeholder="タスク名を入力"></div>
+      <div class="fg2">
+        <div class="fg"><label>カテゴリ</label><select id="m-cat"></select></div>
+        <div class="fg"><label>担当者</label><input id="m-owner" type="text" placeholder="例: 濱岸"></div>
+      </div>
+      <div class="fg2">
+        <div class="fg"><label>優先度</label><select id="m-priority"><option>最重要</option><option>高</option><option>中</option></select></div>
+        <div class="fg"><label>期限</label><input id="m-deadline" type="date"></div>
+      </div>
+      <div class="fg"><label>ステータス</label><select id="m-status"><option>未着手</option><option>進行中</option><option>確認待ち</option><option>完了</option><option>保留</option></select></div>
+      <div class="fg"><label>詳細・作業内容</label><textarea id="m-detail" rows="3" placeholder="具体的な作業内容を入力"></textarea></div>
+      <div class="fg"><label>次アクション</label><textarea id="m-next" rows="2" placeholder="今すぐやるべきこと"></textarea></div>
+      <div class="fg"><label>完了条件</label><input id="m-done" type="text" placeholder="何が揃えば完了か"></div>
+      <div class="fg"><label>備考</label><textarea id="m-note" rows="2" placeholder="補足情報など"></textarea></div>
+      <div class="fg"><label>🎯 紐づくKPI</label><div id="kpi-checks"></div></div>
+    </div>
+    <div class="mftr">
+      <button class="mbtn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="mbtn-save" onclick="saveModal()">💾 保存</button>
+      <button class="mbtn-del" id="m-del" style="display:none">🗑 削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RESET MODAL ===== -->
+<div id="reset-modal" class="overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="mbox small-mbox">
+    <div class="mhdr"><h3>初期データにリセット</h3><button onclick="document.getElementById('reset-modal').style.display='none'">✕</button></div>
+    <div class="mbody"><p style="color:#64748b;font-size:13px">すべての変更が失われます。本当にリセットしますか？</p></div>
+    <div class="mftr">
+      <button class="mbtn-cancel" onclick="document.getElementById('reset-modal').style.display='none'">キャンセル</button>
+      <button class="mbtn-save" style="background:#ef4444" onclick="doReset()">リセット</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TODAY="2026-05-15"
+const CATS=["①数字・レポート基盤","②ダッシュボード構築","③戦略設計・USP","④LP改善・制作","⑤コンテンツ・成功事例集","⑥アライアンス・新規チャネル","⑦SNS運用（既存顧客向け）","⑧自己改善","⑨セミナー運営","⑩セミナー分析","⑪システム・IS連携","⑫セミナー設計","⑬コンテンツ制作","⑭計画・体制"]
+const CATBG={"①数字・レポート基盤":"#dbeafe","②ダッシュボード構築":"#d1fae5","③戦略設計・USP":"#fef9c3","④LP改善・制作":"#fce7f3","⑤コンテンツ・成功事例集":"#ede9fe","⑥アライアンス・新規チャネル":"#ccfbf1","⑦SNS運用（既存顧客向け）":"#ffedd5","⑧自己改善":"#f3f4f6","⑨セミナー運営":"#e0f2fe","⑩セミナー分析":"#dcfce7","⑪システム・IS連携":"#fff7ed","⑫セミナー設計":"#f5f3ff","⑬コンテンツ制作":"#fdf2f8","⑭計画・体制":"#eef2ff"}
+const PC={"最重要":{bg:"#fee2e2",tc:"#b91c1c",bd:"#ef4444"},"高":{bg:"#fef3c7",tc:"#92400e",bd:"#f59e0b"},"中":{bg:"#dbeafe",tc:"#1e40af",bd:"#60a5fa"}}
+const SC={"未着手":"#f3f4f6","進行中":"#dbeafe","確認待ち":"#fef9c3","完了":"#d1fae5","保留":"#fee2e2"}
+const STC={"未着手":"#6b7280","進行中":"#1d4ed8","確認待ち":"#854d0e","完了":"#065f46","保留":"#991b1b"}
+const STATUSES=["未着手","進行中","確認待ち","完了","保留"]
+const COL_CLR={"未着手":{h:"#475569",bg:"#f1f5f9"},"進行中":{h:"#1d4ed8",bg:"#eff6ff"},"確認待ち":{h:"#92400e",bg:"#fffbeb"},"完了":{h:"#15803d",bg:"#f0fdf4"},"保留":{h:"#991b1b",bg:"#fff1f2"}}
+
+const INIT_KPIS=[
+  {id:"a1",type:"A",name:"受注数",role:"最終成果・代表指標",unit:"件",current:"",target:""},
+  {id:"a2",type:"A",name:"商談数",role:"受注に直結する主要KPI",unit:"件",current:"",target:""},
+  {id:"a3",type:"A",name:"SQL数",role:"営業が追うべき見込み顧客",unit:"件",current:"",target:""},
+  {id:"a4",type:"A",name:"MQL数",role:"マーケが創出した有望リード",unit:"件",current:"",target:""},
+  {id:"a5",type:"A",name:"MQL→SQL率",role:"リードの質",unit:"%",current:"",target:""},
+  {id:"a6",type:"A",name:"SQL→商談率",role:"営業接続の質",unit:"%",current:"",target:""},
+  {id:"a7",type:"A",name:"商談→受注率",role:"商談品質",unit:"%",current:"",target:""},
+  {id:"b1",type:"B",name:"一元ダッシュボード構築",role:"管理基盤の整備",status:"未着手",targetDate:"2026-05-31"},
+  {id:"b2",type:"B",name:"USP・戦略設計完了",role:"来期施策の方向性確定",status:"未着手",targetDate:"2026-05-31"},
+  {id:"b3",type:"B",name:"LP改善設計完了",role:"CVR向上の基盤整備",status:"未着手",targetDate:"2026-05-31"},
+  {id:"b4",type:"B",name:"セミナー管理体制構築",role:"セミナー施策の効率化",status:"未着手",targetDate:"2026-05-20"},
+  {id:"b5",type:"B",name:"アライアンス初動完了",role:"新規チャネルの開拓開始",status:"未着手",targetDate:"2026-05-31"},
+  {id:"b6",type:"B",name:"成功事例集骨子完成",role:"商談ツールの整備",status:"未着手",targetDate:"2026-05-31"},
+  {id:"b7",type:"B",name:"SNS運用開始",role:"既存顧客との接点維持",status:"未着手",targetDate:"2026-05-31"},
+  {id:"b8",type:"B",name:"マーケレポート体制構築",role:"数字管理の基盤整備",status:"未着手",targetDate:"2026-05-31"},
+  {id:"b9",type:"B",name:"MQL/SQL定義確立",role:"数字の定義統一・計測基盤",status:"未着手",targetDate:"2026-05-31"},
+]
+
+const D=[
+{id:1,cat:"①数字・レポート基盤",task:"MQL/SQL定義の整理",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"MQLの基準（スコア・行動条件）とSQLの基準（営業接触・温度感）を明記し、全員で合意・共有する。",nextAction:"既存リストを基準案に照らし分類→営業と合意MTG設定",done:"定義書が全員に共有され、営業とマーケで合意が取れている",note:"定義なしでは全数字がブレる",linkedKPIs:["a3","a4","a5","b9"]},
+{id:2,cat:"①数字・レポート基盤",task:"MQL数の洗い出し",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"既存リストを定義に照らして分類。MQL該当数を月次で集計。",nextAction:"定義整理（No.1）完了後に着手",done:"当月MQL数が正確にカウントされている",note:"No.1の定義整理が前提",linkedKPIs:["a4","b9"]},
+{id:3,cat:"①数字・レポート基盤",task:"SQL数の洗い出し",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"MQLリストをSQL基準で絞り込み。営業担当者ごとにSQL数を集計。",nextAction:"MQL洗い出し（No.2）と並行して進める",done:"月次でSQL数が正確に把握できている",note:"No.2と並行",linkedKPIs:["a3","b9"]},
+{id:4,cat:"①数字・レポート基盤",task:"マーケティングレポートシステムの構築",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"集計すべき指標を決定。スプレッドシートorBIツールで自動集計設計。月次更新の運用フロー確立。",nextAction:"集計すべき指標リストを今週中に作成する",done:"毎月5営業日以内にレポートが出力できる",note:"",linkedKPIs:["b8"]},
+{id:5,cat:"①数字・レポート基盤",task:"メルマガ開封率・クリック率の把握",owner:"マーケ担当",priority:"高",deadline:"2026-05-31",status:"未着手",detail:"過去12ヶ月の開封率・クリック率をメルマガシステムから抽出。月別・タイトル別で一覧化。",nextAction:"メルマガシステムからエクスポート→集計",done:"過去データが一覧化され、平均値が把握できている",note:"",linkedKPIs:["a4","b8"]},
+{id:6,cat:"①数字・レポート基盤",task:"チャネル別成果の可視化",owner:"マーケ担当",priority:"高",deadline:"2026-05-31",status:"未着手",detail:"チャネル別にリード数・商談数・受注数を集計。チャネル別CPAを算出。",nextAction:"リストにチャネル情報を付与するルールを定める",done:"チャネル別の成果数字が月次で可視化されている",note:"",linkedKPIs:["a4","b8"]},
+{id:7,cat:"①数字・レポート基盤",task:"商談数・受注数・受注率の整理",owner:"マーケ担当",priority:"高",deadline:"2026-05-31",status:"未着手",detail:"月別・担当者別で商談数・受注数を集計。受注率を算出。マーケ施策との相関を確認。",nextAction:"CRMまたはスプレッドシートからデータ抽出",done:"月別・担当者別で受注率が把握できている",note:"",linkedKPIs:["a1","a2","a7","b8"]},
+{id:8,cat:"①数字・レポート基盤",task:"担当者別受注率レポート（対比・ヨチ）",owner:"マーケ担当",priority:"高",deadline:"2026-05-31",status:"未着手",detail:"対比さん・ヨチさんそれぞれの商談数・受注数・受注率を集計。月別推移グラフ化。",nextAction:"商談数・受注数データを担当者別に抽出する",done:"担当者別レポートが月次で自動更新される",note:"個人情報の取り扱いに注意",linkedKPIs:["a1","a7"]},
+{id:9,cat:"①数字・レポート基盤",task:"予算対効果の整理",owner:"マーケ担当",priority:"高",deadline:"2026-05-31",status:"未着手",detail:"施策別に予算・リード数・受注数・売上を集計。施策別ROIを算出。",nextAction:"施策別コストデータを経理から取得する",done:"施策別ROIが一覧で比較できる",note:"",linkedKPIs:["a1","b8"]},
+{id:10,cat:"②ダッシュボード構築",task:"成果指標の管理項目決定",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"KPI候補リストを作成。経営・マーケ・営業で優先KPIを合意。ダッシュボードの設計書を作成。",nextAction:"KPI候補リストを今週中にドラフト作成",done:"全員が合意したKPIリストが文書化されている",note:"",linkedKPIs:["b1"]},
+{id:11,cat:"②ダッシュボード構築",task:"クラウド一元ダッシュボードの設計・構築",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"ツール選定（Notion/スプレッドシート等）。管理項目・ビュー設計。担当者・期限・ステータス設計。",nextAction:"ツール選定を今週中に決定する",done:"全員がアクセスでき、毎週更新されている",note:"3回ブラッシュアップ前提",linkedKPIs:["b1"]},
+{id:12,cat:"②ダッシュボード構築",task:"数字-課題-施策-タスク連動フロー設計",owner:"マーケ担当",priority:"高",deadline:"2026-05-31",status:"未着手",detail:"数字→課題発見→施策立案→タスク分解のフロー図を作成。週次MTGの議題フォーマットと連動。",nextAction:"フロー図のドラフトを作成し、MTGで共有",done:"フローが文書化され、週次MTGで活用されている",note:"",linkedKPIs:["b1"]},
+{id:13,cat:"②ダッシュボード構築",task:"研修の学びを施策へ落とし込み",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"研修の学びを箇条書きで整理。各学びを施策・タスクに変換。優先度をつけてダッシュボードに登録。",nextAction:"研修ノートを見直し、今週中にリスト化",done:"研修の学び全項目が施策またはタスクに変換されている",note:"5月中必達",linkedKPIs:["b1"]},
+{id:14,cat:"③戦略設計・USP",task:"マーケ戦略の整理（研修踏まえ）",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"研修内容・市場環境・競合情報を整理。自社の強み・弱みを確認。来期の重点施策3〜5本を決定。",nextAction:"戦略サマリーのドラフトを作成し、経営に共有",done:"来期の重点施策が文書化され、経営承認を得ている",note:"",linkedKPIs:["b2"]},
+{id:15,cat:"③戦略設計・USP",task:"USPの見直し",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"現在のUSPを棚卸し。顧客インタビュー・事例から強みを抽出。競合との比較でUSPを再定義。",nextAction:"既存顧客の導入理由ヒアリングを実施",done:"USPが1文で表現でき、全員が説明できる",note:"LP・成功事例集にも反映",linkedKPIs:["b2","a1"]},
+{id:16,cat:"③戦略設計・USP",task:"顧客状態別の訴求整理",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"顧客の購買ステージを4〜5段階で定義。各ステージの課題・ニーズ・訴求ポイントを整理。",nextAction:"ステージ定義のドラフトを作成",done:"マトリクスが完成し、LP設計に反映されている",note:"LP出し分けの前提",linkedKPIs:["b2","b3","a4"]},
+{id:17,cat:"③戦略設計・USP",task:"代表指標（受注数）の目標値設定",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"受注数・MQL数・商談数など候補を整理。1つの代表指標を決定。月次・年間目標値を設定。",nextAction:"候補指標を経営に提案し、合意を得る",done:"全員が1つの代表指標を認識している",note:"",linkedKPIs:["a1"]},
+{id:18,cat:"③戦略設計・USP",task:"ABC議論整理・マーケットポータル構想",owner:"マーケ担当",priority:"中",deadline:"2026-05-31",status:"未着手",detail:"ABC議論の議事録を整理。マーケットポータル構想の概要を1枚でまとめる。",nextAction:"議事録をもとに構想書のドラフト作成",done:"議論内容が文書化され、次のアクションが明確",note:"",linkedKPIs:["b2"]},
+{id:19,cat:"④LP改善・制作",task:"LPキャッチコピーの見直し",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"現在のキャッチコピーの課題を分析。顧客状態別のコピー案を3〜5本作成。A/Bテスト計画を立てる。",nextAction:"現在のLPのヒートマップ・アクセスデータを確認",done:"新コピー案が5本以上作成されA/Bテスト計画が立っている",note:"",linkedKPIs:["b3","a4"]},
+{id:20,cat:"④LP改善・制作",task:"顧客状態別LP設計（E向け優先）",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"「E」ターゲット向けLPの構成を設計。歯科向けLP構成を設計。医科向けLP構成を設計。",nextAction:"「E」向けLP構成のワイヤーフレームを作成",done:"E向けLPの構成案が完成し、デザインに渡せる状態",note:"来期〜9月で実装",linkedKPIs:["b3","a4"]},
+{id:21,cat:"④LP改善・制作",task:"LP内スタッフ写真の差し替え",owner:"マーケ担当",priority:"中",deadline:"2026-09-30",status:"未着手",detail:"現在のスタッフ写真の課題をABC議論に基づいて整理。新しいスタッフ写真の撮影・選定。",nextAction:"差し替え箇所のスクリーンショットをまとめる",done:"写真が差し替えられLP公開されている",note:"ABC議論の内容整理後に着手",linkedKPIs:["b3"]},
+{id:22,cat:"④LP改善・制作",task:"LP改善後のアクセス数・反応率確認",owner:"マーケ担当",priority:"高",deadline:"",status:"未着手",detail:"改善前後のアクセス数・CVR・直帰率を比較。週次でデータを確認。",nextAction:"Googleアナリティクスのレポートを設定する",done:"改善前後の数値比較が月次レポートに含まれている",note:"LP実装後に開始",linkedKPIs:["b3","a4"]},
+{id:23,cat:"⑤コンテンツ・成功事例集",task:"成功ストーリーの型・テーマ設計",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"成功事例のテーマ（3〜5パターン）を決定。ストーリーの型（課題→導入→変化→成果）を設計。",nextAction:"既存事例3件を型に当てはめてみる",done:"テンプレートと型が確定し、サンプル原稿が1本できている",note:"今月中に骨子完成",linkedKPIs:["b6","a1"]},
+{id:24,cat:"⑤コンテンツ・成功事例集",task:"院長コメント・スタッフインタビュー収集",owner:"マーケ担当",priority:"高",deadline:"2026-10-01",status:"未着手",detail:"インタビュー候補医院を3〜5件リストアップ。インタビュー設問を設計。",nextAction:"候補医院リストを営業にヒアリングして作成",done:"3件以上のインタビューが完了している",note:"骨子（No.23）完成後に着手",linkedKPIs:["b6"]},
+{id:25,cat:"⑤コンテンツ・成功事例集",task:"成功事例集の制作・冊子化",owner:"マーケ担当",priority:"高",deadline:"2026-10-01",status:"未着手",detail:"デザイン発注仕様を作成。デザイナーと協業。プレミアム感のある冊子デザインを制作。",nextAction:"デザイン会社の選定・見積もり取得",done:"冊子が完成し、商談資料として活用できる状態",note:"来期に本格制作",linkedKPIs:["b6","a1"]},
+{id:26,cat:"⑤コンテンツ・成功事例集",task:"事例コンテンツのチャネル展開",owner:"マーケ担当",priority:"中",deadline:"2026-10-01",status:"未着手",detail:"事例集からLP用・メルマガ用・商談資料用に切り出し。各フォーマットに合わせて編集。",nextAction:"展開先チャネルのフォーマットを確認",done:"1事例が3チャネル以上で活用されている",note:"冊子完成後に展開",linkedKPIs:["b6","a4"]},
+{id:27,cat:"⑥アライアンス・新規チャネル",task:"アライアンスパートナー候補リストアップ",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"医療事業承継会社を中心に10社以上リストアップ。各社の概要・接触方法を整理。",nextAction:"医療事業承継会社をWeb検索で10社リストアップ",done:"優先順位つきの候補リスト10社以上が完成している",note:"今月中に開始",linkedKPIs:["b5","a4"]},
+{id:28,cat:"⑥アライアンス・新規チャネル",task:"医療事業承継会社へのアプローチ開始",owner:"マーケ担当",priority:"最重要",deadline:"2026-05-31",status:"未着手",detail:"候補リストをもとにアプローチ文を作成。月内に5社以上にファーストコンタクト。反応を記録。",nextAction:"アプローチ文のテンプレートを作成する",done:"5社以上にファーストコンタクトし、反応が記録されている",note:"",linkedKPIs:["b5","a4"]},
+{id:29,cat:"⑥アライアンス・新規チャネル",task:"共催セミナー・相互紹介・WP連携の座組検討",owner:"マーケ担当",priority:"高",deadline:"2026-10-01",status:"未着手",detail:"共催セミナーの開催形式・費用分担を検討。相互紹介の条件・フローを設計。",nextAction:"既存の提携事例をリサーチし、座組案を作成",done:"座組提案書が完成し、パートナーに提案できる状態",note:"",linkedKPIs:["b5","a2"]},
+{id:30,cat:"⑦SNS運用（既存顧客向け）",task:"Facebook・Instagram運用方針の確定",owner:"マーケ担当",priority:"高",deadline:"2026-05-31",status:"未着手",detail:"投稿頻度・コンテンツ分類・担当者を決定。投稿テーマを確定。月次振り返りの指標を決める。",nextAction:"投稿テーマ・頻度のドラフトを作成",done:"運用方針書が完成し、最初の1ヶ月分の投稿計画がある",note:"新規獲得より関係性維持が目的",linkedKPIs:["b7"]},
+{id:31,cat:"⑦SNS運用（既存顧客向け）",task:"SNS投稿の定期実施（月次振り返り付き）",owner:"マーケ担当",priority:"高",deadline:"",status:"未着手",detail:"方針に沿って週2〜3回投稿。事例・活用法・セミナー情報を発信。月末に反応数を集計。",nextAction:"最初の投稿コンテンツを1週間分作成",done:"月12回以上投稿・月次レポートが提出されている",note:"",linkedKPIs:["b7"]},
+{id:32,cat:"⑦SNS運用（既存顧客向け）",task:"成功事例をSNS用コンテンツに切り出し",owner:"マーケ担当",priority:"中",deadline:"2026-10-01",status:"未着手",detail:"事例集の内容をSNS向けに短文・画像化。ストック化して定期投稿に組み込む。",nextAction:"事例集骨子（No.23）が完成したら切り出し作業を開始",done:"SNS用事例コンテンツが5件以上ストックされている",note:"",linkedKPIs:["b7","b6"]},
+{id:33,cat:"⑧自己改善",task:"数字の読み取り・考察力の強化",owner:"自分自身",priority:"最重要",deadline:"",status:"未着手",detail:"毎月のレポートに「数字の変化→考察→次の打ち手」を必ず記載。週次で数字を確認し気づきをメモする習慣を作る。",nextAction:"今月のレポートに考察欄を追加する",done:"全レポートに考察と次の打ち手が記載されている",note:"",linkedKPIs:["b8"]},
+{id:34,cat:"⑧自己改善",task:"他者の発言を施策に正確に反映する力の強化",owner:"自分自身",priority:"最重要",deadline:"",status:"未着手",detail:"会議後に「相手の発言」「自分の解釈」「反映内容」を3列で記録。参加者に共有し認識ズレを確認。",nextAction:"3列フォーマットを今週中に作成し、次の会議から使う",done:"会議のたびに3列記録を残している",note:"形骸化しないよう毎回必ず実施",linkedKPIs:[]},
+{id:35,cat:"⑧自己改善",task:"タスク管理力の強化（ダッシュボード活用）",owner:"自分自身",priority:"最重要",deadline:"",status:"未着手",detail:"一元ダッシュボードを毎週月曜に更新。期限切れタスクは原因と次アクションを記録。毎週金曜に完了確認。",nextAction:"ダッシュボード（No.11）を完成させたら即運用開始",done:"毎週月曜更新・毎週金曜完了確認が継続されている",note:"習慣化が最重要",linkedKPIs:["b1"]},
+{id:36,cat:"⑨セミナー運営",task:"ベースアップ評価料セミナー アーカイブ配信計画",owner:"濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"5〜6月で集中的に実施。目安は計8回程度のアーカイブ配信計画を作成する。",nextAction:"配信回数・スケジュール・プラットフォームを決定",done:"アーカイブ配信の計画書が完成している",note:"",linkedKPIs:["a4","b4"]},
+{id:37,cat:"⑨セミナー運営",task:"ベースアップ評価料セミナー 広告配信方針の検討",owner:"濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"Facebook広告も活用し、新規リード獲得を狙う。広告クリエイティブ・ターゲット・予算を検討。",nextAction:"過去広告の成果データを確認し、方針案を作成",done:"広告配信方針が決定し、クリエイティブ制作に着手できる状態",note:"",linkedKPIs:["a4","b4"]},
+{id:38,cat:"⑨セミナー運営",task:"ベースアップ評価料 資料送付・問い合わせ対応体制",owner:"濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"資料希望が多いため、送付体制を整える。対応フローと担当者を決定。",nextAction:"資料送付の手順書を作成し、対応体制を整える",done:"資料送付が3営業日以内に完了する体制が整っている",note:"",linkedKPIs:["a4","b4"]},
+{id:39,cat:"⑨セミナー運営",task:"アンケート低評価者への個別連絡",owner:"濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"「期待に沿わなかった」「参考にならなかった」と回答した参加者に個別連絡。理由を丁寧に確認する。",nextAction:"低評価者リストを抽出し、連絡文を作成",done:"全低評価者に連絡し、理由が記録されている",note:"",linkedKPIs:["b4"]},
+{id:40,cat:"⑨セミナー運営",task:"アンケート回答別フォローアクション表の作成",owner:"濱岸",priority:"高",deadline:"2026-05-26",status:"未着手",detail:"例：メール送付、資料送付、架電、無料相談案内、アーカイブ案内など回答別の対応表を作成。",nextAction:"アンケートの回答パターンを整理し、対応フローを設計",done:"回答別フォローアクション表が完成し、運用に使える状態",note:"",linkedKPIs:["a4","b4"]},
+{id:41,cat:"⑨セミナー運営",task:"アンケート選択肢の重複整理案の作成",owner:"濱岸",priority:"中",deadline:"2026-06-30",status:"未着手",detail:"「作り方相談」「何が必要か相談」など近い項目を統合検討。最適な選択肢セットを設計。",nextAction:"現在の選択肢を一覧化し、類似項目をグルーピング",done:"重複が解消された新しい選択肢セットが確定している",note:"",linkedKPIs:["b4"]},
+{id:42,cat:"⑩セミナー分析",task:"初参加者の認知経路集計",owner:"濱岸",priority:"高",deadline:"2026-05-26",status:"未着手",detail:"初参加者がメール、広告、SNSなどどこから来たかを確認。経路別の比率を集計。",nextAction:"アンケート結果から初参加者を抽出し、認知経路を集計",done:"認知経路別の比率が数値で把握できている",note:"",linkedKPIs:["a4","b8"]},
+{id:43,cat:"⑩セミナー分析",task:"初参加者の初回CV時期・流入元をHubSpotで確認",owner:"濱岸",priority:"高",deadline:"2026-05-26",status:"未着手",detail:"過去広告やリード獲得施策の貢献度を見る。HubSpotのコンタクト履歴から確認。",nextAction:"初参加者リストをHubSpotで検索し、流入元を確認",done:"初参加者の流入元・CV時期が一覧化されている",note:"",linkedKPIs:["a4","b8"]},
+{id:44,cat:"⑩セミナー分析",task:"評価制度の有無別アンケートクロス集計",owner:"濱岸",priority:"高",deadline:"2026-05-26",status:"未着手",detail:"制度あり／なし、運用中／未運用でニーズ差を見る。クロス集計表を作成。",nextAction:"アンケートデータに評価制度有無の列を追加してクロス集計",done:"評価制度有無別のニーズ差が数値で確認できている",note:"",linkedKPIs:["b8"]},
+{id:45,cat:"⑩セミナー分析",task:"ユーザー外に絞った分析表の作成",owner:"濱岸",priority:"高",deadline:"2026-05-26",status:"未着手",detail:"既存ユーザー混在を除き、マーケ施策判断に使う分析表を作成。",nextAction:"参加者リストから既存ユーザーを除いた分析用データを作成",done:"ユーザー外に限定した分析表が完成している",note:"",linkedKPIs:["a4","b8"]},
+{id:46,cat:"⑩セミナー分析",task:"次セミナー誘導率をスプレッドシートに追加",owner:"濱岸",priority:"高",deadline:"2026-05-26",status:"未着手",detail:"アンケート後の次セミナー申込率をユーザー外で見る。スプレッドシートに追跡列を追加。",nextAction:"スプレッドシートに次セミナー申込率の列を追加",done:"次セミナー誘導率が毎回計測できる仕組みになっている",note:"",linkedKPIs:["a4","b4"]},
+{id:47,cat:"⑩セミナー分析",task:"次セミナーを実際に視聴したかを追跡する仕組み検討",owner:"濱岸",priority:"中",deadline:"2026-06-30",status:"未着手",detail:"申込だけでなく視聴有無まで見る。BizibleやZoom等の視聴ログ活用を検討。",nextAction:"利用ツールで視聴履歴を取得できるか確認",done:"視聴追跡の仕組みが設計され、実装計画が立っている",note:"",linkedKPIs:["b4"]},
+{id:48,cat:"⑪システム・IS連携",task:"BiziblとHubSpot連携の仕様確認",owner:"濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"セミナー参加履歴・参加有無・アンケート情報をHubSpotに自動反映できるか確認。",nextAction:"Biziblのサポートまたは管理画面でHubSpot連携設定を確認",done:"連携の可否と必要な設定が明確になっている",note:"",linkedKPIs:["b4","b8"]},
+{id:49,cat:"⑪システム・IS連携",task:"ISへ参加者情報の暫定共有",owner:"濱岸",priority:"最重要",deadline:"2026-05-16",status:"未着手",detail:"誰がどのセミナーに参加したかをスプレッドシートで共有。HubSpot連携前の暫定対応。",nextAction:"参加者情報をスプレッドシートに整理してISに共有",done:"ISが参加者情報をスプレッドシートで確認できる状態",note:"即対応",linkedKPIs:["a3","b4"]},
+{id:50,cat:"⑪システム・IS連携",task:"参加セミナー情報を商談メモへ残す運用徹底",owner:"濱岸/IS",priority:"最重要",deadline:"2026-05-16",status:"未着手",detail:"FSが商談前に参加履歴を把握できるようにする。アポ取得時の商談メモ記入を徹底。",nextAction:"IS向けに運用ルールを文書化し、周知する",done:"全商談メモに参加セミナー情報が記載されている",note:"即対応",linkedKPIs:["a2","a6"]},
+{id:51,cat:"⑫セミナー設計",task:"6月ワークショップ 内容設計",owner:"田所/戸澤/濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"評価制度初心者向け。「スタッフが納得する評価制度」軸で内容を設計。ワークのプログラムを作成。",nextAction:"ワークショップの目的・アジェンダ・必要資料をリストアップ",done:"ワークショップのアジェンダと資料が完成している",note:"",linkedKPIs:["a4","b4"]},
+{id:52,cat:"⑫セミナー設計",task:"6月ワークショップ 登壇者決定",owner:"戸澤/田所",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"戸澤さん or コンサルメンバーで検討。登壇者を決定し、スケジュール調整を行う。",nextAction:"戸澤さんに登壇可否を確認",done:"登壇者が決定し、日程が確定している",note:"",linkedKPIs:["b4"]},
+{id:53,cat:"⑫セミナー設計",task:"セミナー管理シートへの項目追加",owner:"濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"「種類・目的・KPI・テーマ」列を追加。過去セミナーにも反映する。",nextAction:"セミナー管理シートに4列を追加し、過去分を入力",done:"全セミナーに種類・目的・KPI・テーマが記載されている",note:"",linkedKPIs:["b4","b8"]},
+{id:54,cat:"⑫セミナー設計",task:"整形外科セミナーの進行設計",owner:"岡/大使/田所",priority:"高",deadline:"2026-05-28",status:"未着手",detail:"5/29 20:00想定。進め方を午後に相談。タイムライン・担当・資料を確認。",nextAction:"午後のMTGで進行設計を詰める",done:"進行台本・資料・担当分担が確定している",note:"5/29前",linkedKPIs:["a4","b4"]},
+{id:55,cat:"⑫セミナー設計",task:"9月セミナーのテーマ再検討",owner:"田所/加藤/濱岸",priority:"高",deadline:"2026-06-15",status:"未着手",detail:"新卒採用テーマが候補。季節性を加味し、テーマと登壇者・集客方針を検討。",nextAction:"新卒採用テーマの市場ニーズをリサーチ",done:"9月セミナーのテーマと集客計画が確定している",note:"",linkedKPIs:["a4","b4"]},
+{id:56,cat:"⑫セミナー設計",task:"新卒採用成功医院候補の抽出",owner:"各リーダー/桑原/加藤",priority:"高",deadline:"2026-06-15",status:"未着手",detail:"できれば既存ユーザーが望ましい。9月セミナー登壇・事例紹介に使える医院を探す。",nextAction:"各リーダーに候補医院をヒアリング",done:"候補医院が3件以上リストアップされている",note:"",linkedKPIs:["b6","b4"]},
+{id:57,cat:"⑫セミナー設計",task:"10月・立ち並みさんセミナーの中身検討",owner:"加藤/田所",priority:"中",deadline:"",status:"未着手",detail:"日程は押さえているが中身未定。テーマ・構成・集客方針を検討する。",nextAction:"加藤さんと日程調整してMTGを設定",done:"テーマと大まかな構成が決まっている",note:"",linkedKPIs:["b4"]},
+{id:58,cat:"⑫セミナー設計",task:"下半期セミナーの時期×テーマ再設計",owner:"田所主導",priority:"中",deadline:"",status:"未着手",detail:"採用、教育、評価、賞与・昇給など季節性を加味した下半期セミナーカレンダーを設計。",nextAction:"別途MTGの日程を設定する",done:"下半期6〜12月のセミナーカレンダーが確定している",note:"",linkedKPIs:["b4"]},
+{id:59,cat:"⑬コンテンツ制作",task:"コラム用キーワードリストの作成",owner:"濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"離職、昇給、ベースアップ評価料などのキーワードをリストアップ。月別・優先度別に整理。",nextAction:"競合サイトと自社の強みを照らし合わせてキーワード候補を30件以上出す",done:"優先度つきキーワードリストが30件以上完成している",note:"",linkedKPIs:["a4","b8"]},
+{id:60,cat:"⑬コンテンツ制作",task:"記事作成用ペルソナの選定",owner:"濱岸",priority:"最重要",deadline:"2026-05-20",status:"未着手",detail:"先日のペルソナ・カスタマージャーニー成果物を活用。記事ターゲットとなるペルソナを2〜3個に絞る。",nextAction:"ペルソナ・CJ成果物を確認し、記事向けに2〜3個選定",done:"記事作成に使うペルソナが2〜3個選定されている",note:"",linkedKPIs:["a4","b8"]},
+{id:61,cat:"⑬コンテンツ制作",task:"検索ボリューム・上位記事調査",owner:"佐藤/濱岸",priority:"高",deadline:"",status:"未着手",detail:"Ahrefs等のキーワードデータも依頼可。キーワードリスト提出後に依頼・取得。",nextAction:"キーワードリスト（No.59）完成後に佐藤さんへ依頼",done:"主要キーワードの月間ボリュームと上位記事が把握できている",note:"",linkedKPIs:["a4"]},
+{id:62,cat:"⑬コンテンツ制作",task:"Claude用記事作成プロンプト・手順の整備",owner:"佐藤/濱岸",priority:"中",deadline:"",status:"未着手",detail:"ペルソナ、トーン、記事制作ステップをMarkdown化。再現性の高い記事量産の仕組みを作る。",nextAction:"既存の良記事を分解し、プロンプトのベースを作る",done:"プロンプトを使って一定品質の記事が書ける状態",note:"",linkedKPIs:["a4"]},
+{id:63,cat:"⑬コンテンツ制作",task:"記事・ホワイトペーパーの量産",owner:"濱岸",priority:"中",deadline:"",status:"未着手",detail:"例：離職10本、ベースアップ評価料WP5本など。プロンプト整備後に量産開始。",nextAction:"第1本目の記事を試作する",done:"月3本以上の記事が継続的に公開されている",note:"",linkedKPIs:["a4"]},
+{id:64,cat:"⑬コンテンツ制作",task:"画像サイズの修正（約60個）",owner:"田所/栗原",priority:"高",deadline:"2026-06-15",status:"未着手",detail:"画像約60個のサイズ調整を依頼。Webパフォーマンス向上のために最適なサイズに修正。",nextAction:"修正が必要な画像リストを栗原さんに共有",done:"全60個の画像サイズ修正が完了している",note:"",linkedKPIs:["b3"]},
+{id:65,cat:"⑭計画・体制",task:"4〜6月マーケ全体アクションプランの作成",owner:"濱岸",priority:"最重要",deadline:"2026-05-22",status:"未着手",detail:"3ヶ月のゴール、施策、優先順位、評価基準を整理。全員が共通認識を持てるプランに仕上げる。",nextAction:"3ヶ月ゴールの仮案を今日中に作成",done:"3ヶ月のアクションプランが1枚にまとまっている",note:"急ぎ",linkedKPIs:["a1","b1"]},
+{id:66,cat:"⑭計画・体制",task:"4〜6月計画を戸澤さん・田所さんとすり合わせ",owner:"濱岸/戸澤/田所",priority:"最重要",deadline:"2026-05-22",status:"未着手",detail:"評価時にズレが出ないよう合意形成。プランを共有し、認識を揃える。",nextAction:"アクションプラン（No.65）完成後にMTGを設定",done:"3者が同じ方向性で合意している",note:"急ぎ",linkedKPIs:["b1"]},
+{id:67,cat:"⑭計画・体制",task:"定例を1時間枠に変更（月曜10時〜）",owner:"濱岸",priority:"最重要",deadline:"2026-05-16",status:"未着手",detail:"月曜10時から1時間枠に変更。関係者全員に通知し、カレンダーを更新する。",nextAction:"定例カレンダーを更新し、全員に共有する",done:"カレンダーが更新され、全員が認識している",note:"即対応",linkedKPIs:[]}
+]
+
+let tasks=[], kpis=[], openId=null, editId=null, sfilt="", xkpi=null, currentView="table", dragId=null
+
+function load(){
+  try{
+    // Try latest save first
+    const s7=localStorage.getItem("dhr-v7");if(s7){const p=JSON.parse(s7);tasks=p.tasks;kpis=p.kpis;return}
+    // Auto-migrate from old version (dhr-v6)
+    const s6=localStorage.getItem("dhr-v6");if(s6){const p=JSON.parse(s6);tasks=p.tasks;kpis=p.kpis;save();console.log("dhr-v6 data migrated to v7");return}
+    // Defaults
+    tasks=JSON.parse(JSON.stringify(D));kpis=JSON.parse(JSON.stringify(INIT_KPIS))
+  }catch(e){tasks=JSON.parse(JSON.stringify(D));kpis=JSON.parse(JSON.stringify(INIT_KPIS))}
+}
+let saveT=null
+function save(){
+  document.getElementById("save-badge").className="save-badge saving"
+  document.getElementById("save-badge").textContent="💾 保存中"
+  clearTimeout(saveT)
+  saveT=setTimeout(()=>{try{localStorage.setItem("dhr-v7",JSON.stringify({tasks,kpis}))}catch(e){}; document.getElementById("save-badge").className="save-badge"; document.getElementById("save-badge").textContent="✓ 保存済み"},600)
+}
+function set(id,k,v){const t=tasks.find(t=>t.id===id);if(t){t[k]=v;save();if(currentView==="kanban")renderKanban();else renderTasks()}}
+function setKpi(id,k,v){const k2=kpis.find(k=>k.id===id);if(k2){k2[k]=v;save();renderGoals()}}
+
+function switchTab(tab){
+  document.getElementById("screen-tasks").style.display=tab==="tasks"?"flex":"none"
+  document.getElementById("screen-goals").style.display=tab==="goals"?"flex":"none"
+  document.getElementById("screen-tasks").style.flexDirection="column"
+  document.getElementById("screen-goals").style.flexDirection="column"
+  document.getElementById("tab-tasks").className="tab"+(tab==="tasks"?" active":"")
+  document.getElementById("tab-goals").className="tab"+(tab==="goals"?" active":"")
+  if(tab==="goals")renderGoals()
+}
+
+function setView(v){
+  currentView=v
+  document.getElementById("view-table").style.display=v==="table"?"":"none"
+  document.getElementById("view-kanban").style.display=v==="kanban"?"":"none"
+  document.getElementById("vbtn-table").className="vbtn"+(v==="table"?" active":"")
+  document.getElementById("vbtn-kanban").className="vbtn"+(v==="kanban"?" active":"")
+  if(v==="kanban")renderKanban(); else renderTasks()
+}
+
+function onFilter(){if(currentView==="kanban")renderKanban();else renderTasks()}
+
+function getFilt(){
+  const q=document.getElementById("search").value
+  const fc=document.getElementById("f-cat").value
+  const fp=document.getElementById("f-pri").value
+  const fo=document.getElementById("f-own").value
+  const fk=document.getElementById("f-kpi").value
+  return tasks.filter(t=>{
+    if(fc&&t.cat!==fc)return false
+    if(fp&&t.priority!==fp)return false
+    if(fo&&!t.owner.includes(fo))return false
+    if(fk&&!(t.linkedKPIs||[]).includes(fk))return false
+    if(q&&!t.task.includes(q)&&!t.owner.includes(q)&&!(t.nextAction||"").includes(q))return false
+    if(sfilt==="期限切れ"){if(!(t.deadline&&t.deadline<TODAY&&t.status!=="完了"))return false}
+    else if(sfilt&&t.status!==sfilt)return false
+    return true
+  })
+}
+function clearFilters(){document.getElementById("search").value="";document.getElementById("f-cat").value="";document.getElementById("f-pri").value="";document.getElementById("f-own").value="";document.getElementById("f-kpi").value="";sfilt="";onFilter()}
+
+// ===== STATS BAR =====
+function renderStats(){
+  const s={未着手:0,進行中:0,確認待ち:0,完了:0,保留:0,ov:0}
+  tasks.forEach(t=>{s[t.status]=(s[t.status]||0)+1;if(t.deadline&&t.deadline<TODAY&&t.status!=="完了")s.ov++})
+  document.getElementById("hdr-lbl").textContent="全"+tasks.length+"タスク"
+  document.getElementById("stats").innerHTML=[
+    {k:"",l:"全タスク",v:tasks.length,bg:"#f1f5f9",tc:"#334155"},
+    {k:"未着手",l:"未着手",v:s.未着手,bg:"#f1f5f9",tc:"#334155"},
+    {k:"進行中",l:"進行中",v:s.進行中,bg:"#eff6ff",tc:"#1d4ed8"},
+    {k:"確認待ち",l:"確認待ち",v:s.確認待ち,bg:"#fefce8",tc:"#854d0e"},
+    {k:"完了",l:"完了",v:s.完了,bg:"#f0fdf4",tc:"#15803d"},
+    {k:"保留",l:"保留",v:s.保留,bg:"#fff1f2",tc:"#be123c"},
+    {k:"期限切れ",l:"⚠️ 期限切れ",v:s.ov,bg:"#fff7ed",tc:"#c2410c"},
+  ].map(sd=>{const active=sfilt===sd.k&&sd.k!=="";return'<div class="stat'+(active?" active":"")+'" style="background:'+sd.bg+';border-color:'+(active?"#3b82f6":"transparent")+'" onclick="sfilt=(sfilt===\''+sd.k+'\'?\'\':\''+sd.k+'\');onFilter()"><div class="n" style="color:'+sd.tc+'">'+sd.v+'</div><div class="l">'+sd.l+'</div></div>'}).join("")
+}
+
+// ===== TABLE RENDER =====
+function renderTasks(){
+  renderStats()
+  const rows=getFilt()
+  const hasFilt=document.getElementById("search").value||document.getElementById("f-cat").value||document.getElementById("f-pri").value||document.getElementById("f-own").value||document.getElementById("f-kpi").value||sfilt
+  document.getElementById("clr-btn").style.display=hasFilt?"":"none"
+  document.getElementById("cnt-lbl").textContent=rows.length+"件"
+  const tb=document.getElementById("tbody")
+  if(rows.length===0){tb.innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8">該当するタスクがありません</td></tr>';return}
+  tb.innerHTML=rows.map((t,i)=>{
+    const pc=PC[t.priority]||PC["中"]
+    const isOvd=t.deadline&&t.deadline<TODAY&&t.status!=="完了"
+    const rowBg=openId===t.id?"#f0f7ff":i%2===0?"#fafafa":"#fff"
+    const catBg=CATBG[t.cat]||"#f1f5f9"
+    const catName=t.cat.replace(/^[①-⑭]/,"").trim()
+    const priOpts=["最重要","高","中"].map(p=>'<option'+(p===t.priority?" selected":"")+'>'+p+'</option>').join("")
+    const staOpts=STATUSES.map(s=>'<option'+(s===t.status?" selected":"")+'>'+s+'</option>').join("")
+    const lkpis=(t.linkedKPIs||[]).map(kid=>{const k=kpis.find(k=>k.id===kid);return k?'<span class="kpi-chip">'+k.name+'</span>':""}).join("")
+    const actionHtml=editId===t.id?'<textarea class="ata" rows="2" onblur="finEdit('+t.id+',this.value)">'+esc(t.nextAction||"")+'</textarea>':'<div class="acell'+(t.nextAction?"":" ph")+'" onclick="editId='+t.id+';renderTasks()">'+esc(t.nextAction||"クリックして入力")+'</div>'
+    const detRow=openId===t.id?'<tr class="xr" style="border-left:4px solid '+pc.bd+'"><td colspan="10"><div class="dgrid"><div><div class="dlabel">📋 詳細・作業内容</div><div class="dtext">'+esc(t.detail||"—")+'</div></div><div><div class="dlabel">✅ 完了条件</div><div class="dtext" style="margin-bottom:10px">'+esc(t.done||"—")+'</div><div class="dlabel">📝 備考</div><textarea class="dta" rows="2" onchange="set('+t.id+',\'note\',this.value)">'+esc(t.note||"")+'</textarea></div><div><div class="dlabel">👤 担当者</div><input class="di" style="margin-bottom:8px" value="'+esc(t.owner||"")+'" onchange="set('+t.id+',\'owner\',this.value)"><div class="dlabel">🏷️ カテゴリ</div><select class="ds" onchange="set('+t.id+',\'cat\',this.value)">'+CATS.map(c=>'<option'+(c===t.cat?" selected":"")+'>'+c+'</option>').join("")+'</select></div></div></td></tr>':""
+    return'<tr class="dr" style="background:'+rowBg+';border-left:4px solid '+pc.bd+'"><td class="c" style="font-size:11px;color:#94a3b8;font-family:monospace">'+t.id+'</td><td><span class="chip" style="background:'+catBg+'">'+catName+'</span></td><td style="font-weight:500;color:#1e293b;max-width:220px">'+esc(t.task)+'</td><td style="font-size:11px;color:#475569">'+esc(t.owner)+'</td><td class="c"><select class="psel" style="background:'+pc.bg+';color:'+pc.tc+';border:1px solid '+pc.bd+'" onchange="set('+t.id+',\'priority\',this.value)">'+priOpts+'</select></td><td class="c"><input type="date" class="din'+(isOvd?" ov":"")+'" value="'+esc(t.deadline||"")+'" onchange="set('+t.id+',\'deadline\',this.value)">'+(isOvd?'<div class="ovl">期限切れ</div>':"")+'</td><td class="c"><select class="ssel" style="background:'+SC[t.status]+';color:'+STC[t.status]+'" onchange="set('+t.id+',\'status\',this.value)">'+staOpts+'</select></td><td>'+actionHtml+'</td><td style="max-width:96px">'+lkpis+'</td><td class="c" style="white-space:nowrap"><button class="ibtn edit" onclick="openModal('+t.id+')" title="編集">✎</button><button class="ibtn" onclick="openId=(openId==='+t.id+'?null:'+t.id+');editId=null;renderTasks()" title="詳細">'+(openId===t.id?"▲":"▼")+'</button></td></tr>'+detRow
+  }).join("")
+  if(editId!==null){const ta=tb.querySelector("textarea.ata");if(ta){ta.focus();const l=ta.value.length;ta.setSelectionRange(l,l)}}
+}
+
+// ===== KANBAN RENDER =====
+function renderKanban(){
+  renderStats()
+  const rows=getFilt()
+  const hasFilt=document.getElementById("search").value||document.getElementById("f-cat").value||document.getElementById("f-pri").value||document.getElementById("f-own").value||document.getElementById("f-kpi").value||sfilt
+  document.getElementById("clr-btn").style.display=hasFilt?"":"none"
+  document.getElementById("cnt-lbl").textContent=rows.length+"件"
+
+  document.getElementById("kboard").innerHTML=STATUSES.map(status=>{
+    const col=COL_CLR[status]
+    const colTasks=rows.filter(t=>t.status===status)
+    const cards=colTasks.map(t=>{
+      const pc=PC[t.priority]||PC["中"]
+      const isOvd=t.deadline&&t.deadline<TODAY&&t.status!=="完了"
+      const catName=t.cat.replace(/^[①-⑭]/,"").trim()
+      const catBg=CATBG[t.cat]||"#f1f5f9"
+      const lkpis=(t.linkedKPIs||[]).slice(0,2).map(kid=>{const k=kpis.find(k=>k.id===kid);return k?'<span class="kpi-chip">'+k.name+'</span>':""}).join("")
+      const dl=t.deadline?t.deadline.replace("2026-",""):""
+      return'<div class="kcard" draggable="true" style="border-left-color:'+pc.bd+'" ondragstart="onDragStart(event,'+t.id+')" ondragend="onDragEnd(event)" onclick="openModal('+t.id+')">'
+        +'<div class="kcard-no">#'+t.id+'</div>'
+        +'<div class="kcard-top"><span class="chip" style="background:'+catBg+';font-size:9px;padding:1px 5px;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+catName+'</span>'
+        +'<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:'+pc.bg+';color:'+pc.tc+';font-weight:700;white-space:nowrap">'+t.priority+'</span></div>'
+        +'<div class="kcard-name">'+esc(t.task)+'</div>'
+        +'<div class="kcard-meta"><span class="owner">👤 '+esc(t.owner.split("/")[0])+'</span>'
+        +(dl?'<span style="color:'+(isOvd?"#dc2626":"#94a3b8")+'">📅 '+dl+(isOvd?" ⚠":"")+'</span>':"")
+        +'</div>'
+        +(lkpis?'<div class="kcard-kpis">'+lkpis+'</div>':"")
+        +'</div>'
+    }).join("")
+    return'<div class="kcol"><div class="kcol-hdr" style="background:'+col.h+';color:#fff"><span>'+status+'</span><span class="col-cnt">'+colTasks.length+'</span></div>'
+      +'<div class="kcol-body" style="background:'+col.bg+'" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,\''+status+'\')">'
+      +(colTasks.length===0?'<div class="kcol-empty">タスクなし<br><small>ここにドロップ</small></div>':cards)
+      +'</div></div>'
+  }).join("")
+}
+
+// ===== DRAG & DROP =====
+function onDragStart(e,id){
+  dragId=id
+  e.dataTransfer.effectAllowed="move"
+  setTimeout(()=>{const el=document.querySelector(".kcard[ondragstart*='"+id+"']");if(el)el.classList.add("dragging")},0)
+}
+function onDragEnd(e){e.currentTarget.classList.remove("dragging")}
+function onDragOver(e){e.preventDefault();e.dataTransfer.dropEffect="move";e.currentTarget.classList.add("drag-over")}
+function onDragLeave(e){e.currentTarget.classList.remove("drag-over")}
+function onDrop(e,status){
+  e.preventDefault();e.currentTarget.classList.remove("drag-over")
+  if(dragId!==null){set(dragId,"status",status);dragId=null}
+}
+
+// ===== GOALS RENDER =====
+function renderGoals(){
+  const aKpis=kpis.filter(k=>k.type==="A")
+  const bKpis=kpis.filter(k=>k.type==="B")
+  const linkedHtml=id=>{
+    const lt=tasks.filter(t=>(t.linkedKPIs||[]).includes(id))
+    if(lt.length===0)return'<span style="font-size:11px;color:#94a3b8">なし</span>'
+    const isOpen=xkpi===id
+    return'<button class="task-link-btn" onclick="xkpi=(xkpi===\''+id+'\'?null:\''+id+'\');renderGoals()">'+lt.length+'件 '+(isOpen?"▲":"▼")+'</button>'+(isOpen?'<div class="linked-tasks open">'+lt.map(t=>'<div class="lt-row"><span class="lt-no">#'+t.id+'</span><span class="lt-name">'+esc(t.task)+'</span><span class="chip s-'+t.status+'" style="font-size:10px;padding:1px 6px;background:'+SC[t.status]+';color:'+STC[t.status]+'">'+t.status+'</span></div>').join("")+'</div>':"")
+  }
+  document.getElementById("kpi-a-tbody").innerHTML=aKpis.map(k=>{
+    const cur=parseFloat(k.current)||0,tar=parseFloat(k.target)||0
+    const pct=tar>0?Math.min(Math.round(cur/tar*100),100):null
+    const bc=pct===null?"#e2e8f0":pct>=100?"#16a34a":pct>=60?"#3b82f6":"#f59e0b"
+    const isRep=k.id==="a1"
+    return'<tr style="background:'+(isRep?"#fffbeb":"")+'"><td><strong style="font-size:13px'+(isRep?";color:#92400e":"")+'">'+k.name+'</strong>'+(isRep?' <span style="font-size:9px;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:10px;border:1px solid #fcd34d">代表</span>':"")+' <small style="color:#94a3b8;font-size:10px">/ '+k.unit+'</small></td><td style="font-size:11px;color:#475569">'+k.role+'</td><td class="c"><input class="kval" type="number" value="'+esc(k.current||"")+'" placeholder="—" onchange="setKpi(\''+k.id+'\',\'current\',this.value)"></td><td class="c"><input class="kval" type="number" value="'+esc(k.target||"")+'" placeholder="—" onchange="setKpi(\''+k.id+'\',\'target\',this.value)"></td><td><div style="min-width:100px">'+(pct!==null?'<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%;background:'+bc+'"></div></div><div class="prog-pct">'+pct+'%'+(pct>=100?" ✓":"")+' ('+cur+'/'+tar+')</div>':'<div style="font-size:11px;color:#cbd5e1">目標値を入力してください</div>')+'</div></td><td class="c">'+linkedHtml(k.id)+'</td></tr>'
+  }).join("")
+  const bSta=["未着手","設計中","実装中","完了"]
+  const bStaBg={"未着手":"#f3f4f6","設計中":"#dbeafe","実装中":"#fef9c3","完了":"#d1fae5"}
+  const bStaTc={"未着手":"#6b7280","設計中":"#1d4ed8","実装中":"#854d0e","完了":"#065f46"}
+  document.getElementById("kpi-b-tbody").innerHTML=bKpis.map(k=>{
+    const staOpts=bSta.map(s=>'<option'+(s===k.status?" selected":"")+'>'+s+'</option>').join("")
+    return'<tr><td><strong style="font-size:13px">'+k.name+'</strong></td><td style="font-size:11px;color:#475569">'+k.role+'</td><td class="c"><select style="border:1px solid #e2e8f0;border-radius:20px;padding:3px 8px;font-size:11px;cursor:pointer;outline:none;font-weight:600;background:'+bStaBg[k.status]+';color:'+bStaTc[k.status]+'" onchange="setKpi(\''+k.id+'\',\'status\',this.value);this.style.background=({未着手:\'#f3f4f6\',設計中:\'#dbeafe\',実装中:\'#fef9c3\',完了:\'#d1fae5\'})[this.value];this.style.color=({未着手:\'#6b7280\',設計中:\'#1d4ed8\',実装中:\'#854d0e\',完了:\'#065f46\'})[this.value]">'+staOpts+'</select></td><td class="c"><input type="date" class="kval" style="width:110px" value="'+esc(k.targetDate||"")+'" onchange="setKpi(\''+k.id+'\',\'targetDate\',this.value)"></td><td class="c">'+linkedHtml(k.id)+'</td></tr>'
+  }).join("")
+}
+
+// ===== MODAL =====
+function openModal(id){
+  editId=null
+  const t=id?tasks.find(t=>t.id===id):null
+  document.getElementById("m-title").textContent=t?"タスクを編集":"新規タスク"
+  document.getElementById("m-task").value=t?t.task:""
+  document.getElementById("m-owner").value=t?t.owner:""
+  document.getElementById("m-deadline").value=t?t.deadline||"":""
+  document.getElementById("m-detail").value=t?t.detail||"":""
+  document.getElementById("m-next").value=t?t.nextAction||"":""
+  document.getElementById("m-done").value=t?t.done||"":""
+  document.getElementById("m-note").value=t?t.note||"":""
+  document.getElementById("m-cat").innerHTML=CATS.map(c=>'<option'+(t&&t.cat===c?" selected":"")+'>'+c+'</option>').join("")
+  document.getElementById("m-priority").value=t?t.priority:"最重要"
+  document.getElementById("m-status").value=t?t.status:"未着手"
+  const linked=t?t.linkedKPIs||[]:[]
+  const aKpis=kpis.filter(k=>k.type==="A"),bKpis=kpis.filter(k=>k.type==="B")
+  document.getElementById("kpi-checks").innerHTML=
+    '<div class="kpi-section-lbl">A. 成果KPI</div><div class="kpi-checks">'+aKpis.map(k=>'<label class="kpi-cb'+(linked.includes(k.id)?" checked":"")+'" id="kcb-'+k.id+'"><input type="checkbox" value="'+k.id+'"'+(linked.includes(k.id)?" checked":"")+' onchange="toggleCB(\''+k.id+'\',this.checked)"> '+k.name+'</label>').join("")+'</div>'
+    +'<div class="kpi-section-lbl" style="margin-top:8px">B. 構築KPI</div><div class="kpi-checks">'+bKpis.map(k=>'<label class="kpi-cb'+(linked.includes(k.id)?" checked":"")+'" id="kcb-'+k.id+'"><input type="checkbox" value="'+k.id+'"'+(linked.includes(k.id)?" checked":"")+' onchange="toggleCB(\''+k.id+'\',this.checked)"> '+k.name+'</label>').join("")+'</div>'
+  const delBtn=document.getElementById("m-del")
+  if(t){delBtn.style.display="";delBtn.onclick=()=>{if(confirm("このタスクを削除しますか？")){tasks=tasks.filter(t2=>t2.id!==t.id);save();closeModal();if(currentView==="kanban")renderKanban();else renderTasks()}}}
+  else delBtn.style.display="none"
+  document.getElementById("task-modal")._eid=id
+  document.getElementById("task-modal").style.display="flex"
+}
+function toggleCB(kid,checked){const lbl=document.getElementById("kcb-"+kid);if(lbl)lbl.className="kpi-cb"+(checked?" checked":"")}
+function closeModal(){document.getElementById("task-modal").style.display="none"}
+function saveModal(){
+  const taskName=document.getElementById("m-task").value.trim()
+  if(!taskName){alert("タスク名を入力してください");return}
+  const lid=document.getElementById("task-modal")._eid
+  const linkedKPIs=[...document.querySelectorAll("#kpi-checks input[type=checkbox]:checked")].map(c=>c.value)
+  const data={cat:document.getElementById("m-cat").value,task:taskName,owner:document.getElementById("m-owner").value,priority:document.getElementById("m-priority").value,deadline:document.getElementById("m-deadline").value,status:document.getElementById("m-status").value,detail:document.getElementById("m-detail").value,nextAction:document.getElementById("m-next").value,done:document.getElementById("m-done").value,note:document.getElementById("m-note").value,linkedKPIs}
+  if(lid){const t=tasks.find(t=>t.id===lid);if(t)Object.assign(t,data)}
+  else{const newId=tasks.length>0?Math.max(...tasks.map(t=>t.id))+1:1;tasks.push({id:newId,...data})}
+  save();closeModal()
+  if(currentView==="kanban")renderKanban();else renderTasks()
+}
+function finEdit(id,val){set(id,"nextAction",val);editId=null;renderTasks()}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+
+// ===== EXPORT / IMPORT =====
+function exportData(){
+  const blob=new Blob([JSON.stringify({tasks,kpis},null,2)],{type:'application/json'})
+  const url=URL.createObjectURL(blob)
+  const a=document.createElement('a');a.href=url;a.download='doctorhr-backup.json';a.click();URL.revokeObjectURL(url)
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return
+  const reader=new FileReader()
+  reader.onload=function(ev){
+    try{
+      const p=JSON.parse(ev.target.result)
+      if(p.tasks&&p.kpis){
+        tasks=p.tasks;kpis=p.kpis;save()
+        if(currentView==="kanban")renderKanban();else renderTasks()
+        alert("インポート完了："+tasks.length+"件のタスクを読み込みました")
+      }else{alert("フォーマットが正しくありません")}
+    }catch(err){alert("読み込みに失敗しました："+err.message)}
+    e.target.value=""
+  }
+  reader.readAsText(file)
+}
+function doReset(){
+  tasks=JSON.parse(JSON.stringify(D));kpis=JSON.parse(JSON.stringify(INIT_KPIS))
+  localStorage.removeItem("dhr-v7");localStorage.removeItem("dhr-v6");openId=null;editId=null;sfilt=""
+  document.getElementById("reset-modal").style.display="none"
+  if(currentView==="kanban")renderKanban();else renderTasks()
+}
+
+// ===== INIT =====
+const catSel=document.getElementById("f-cat")
+CATS.forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;catSel.appendChild(o)})
+const ownSel=document.getElementById("f-own")
+const owners=[...new Set(D.flatMap(t=>t.owner.split("/")))].filter(Boolean).sort()
+owners.forEach(o=>{const op=document.createElement("option");op.value=o;op.textContent=o;ownSel.appendChild(op)})
+const kpiSel=document.getElementById("f-kpi")
+INIT_KPIS.forEach(k=>{const op=document.createElement("option");op.value=k.id;op.textContent=(k.type==="A"?"A.":"B.")+k.name;kpiSel.appendChild(op)})
+load()
+// Show migration notice if we just migrated from v6
+if(!localStorage.getItem("_dhr_migrated") && localStorage.getItem("dhr-v6")){
+  const banner=document.createElement("div")
+  banner.innerHTML='<div style="background:#fef9c3;border:1px solid #fcd34d;padding:8px 16px;font-size:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span>⚡ 旧バージョンのデータ（dhr-v6）を自動的に引き継ぎました</span><button onclick="this.parentElement.parentElement.remove()" style="margin-left:auto;border:none;background:#f59e0b;color:#fff;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px">OK</button></div>'
+  document.querySelector(".hdr").insertAdjacentElement("afterend", banner)
+  localStorage.setItem("_dhr_migrated","1")
+}
+renderTasks()
+</script>
+</body>
+</html>
